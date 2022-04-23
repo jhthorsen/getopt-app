@@ -15,6 +15,13 @@ sub import {
   $_->import for qw(strict warnings utf8);
   feature->import(':5.16');
 
+  while (my $flag = shift @flags) {
+    if ($flag eq '-signatures') {
+      require experimental;
+      experimental->import(qw(signatures));
+    }
+  }
+
   no strict qw(refs);
   *{"$caller\::new"} = \&new unless $caller->can('new');
   *{"$caller\::run"} = \&run;
