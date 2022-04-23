@@ -1,5 +1,5 @@
-#!start included /opt/homebrew/Cellar/perl/5.34.0/lib/perl5/5.34.0/ExtUtils/MANIFEST.SKIP
 # Avoid version control files.
+.pls_cache
 \bRCS\b
 \bCVS\b
 \bSCCS\b
