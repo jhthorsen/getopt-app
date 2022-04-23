@@ -1,7 +1,8 @@
+use strict;
+use warnings;
 use Test::More;
 
-my $post_process_argv_app = post_process_argv_app();
-my $synopsis_app          = synopsis_app();
+my $synopsis_app = synopsis_app();
 
 subtest import => sub {
   is strict_app(), undef, 'strict_app';
@@ -30,6 +31,7 @@ subtest run => sub {
 };
 
 subtest post_process_argv => sub {
+  my $post_process_argv_app = post_process_argv_app();
   is $post_process_argv_app->([]), 3, 'empty exit';
   is_deeply [@main::POST_PROGRESS], [[], {valid => 1}], 'empty args';
 
@@ -37,7 +39,38 @@ subtest post_process_argv => sub {
   is_deeply [@main::POST_PROGRESS], [[], {valid => 0}], 'invalid args';
 };
 
+subtest hooks => sub {
+  my $hooks_app = hooks_app();
+  is $hooks_app->([qw(-x 40)]),      42, 'default exit value';
+  is $hooks_app->([qw(four -x 40)]), 4,  'four exit value';
+};
+
 done_testing;
+
+sub hooks_app {
+  eval <<'HERE' or die $@;
+    package My::Hooks;
+    use Getopt::App;
+
+    sub command_four { 4 }
+
+    sub getopt_pre_process_argv {
+      my ($app, $argv) = @_;
+      $app->{sub_command} = shift @$argv if @$argv and $argv->[0] =~ m!^[a-z]!;
+    }
+
+    sub getopt_post_process_exit_value {
+      my ($app, $exit_value) = @_;
+      $$exit_value ||= 42;
+    }
+
+    run('x=i', sub {
+      my ($app, @extra) = @_;
+      my $method = sprintf 'command_%s', $app->{sub_command} // 'unknown';
+      return $app->can($method) && $app->$method;
+    });
+HERE
+}
 
 sub post_process_argv_app {
   eval <<'HERE' or die $@;

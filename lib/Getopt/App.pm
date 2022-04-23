@@ -35,6 +35,8 @@ sub run {
   my $argv = ref $rules[0] eq 'ARRAY' ? shift @rules : [@ARGV];
 
   my $app = $class->new;
+  _hook($app, pre_process_argv => $argv);
+
   my @configure
     = $app->can('getopt_configure')
     ? $app->getopt_configure
@@ -46,7 +48,8 @@ sub run {
   _hook($app, post_process_argv => $argv, {valid => $valid});
 
   my $exit_value = $valid ? $app->$cb(@$argv) : 1;
-  $exit_value = 0 unless looks_like_number $exit_value;
+  _hook($app, post_process_exit_value => \$exit_value);
+  $exit_value = 0       unless looks_like_number $exit_value;
   exit(int $exit_value) unless $Getopt::App::APP_CLASS;
   return $exit_value;
 }
@@ -54,7 +57,7 @@ sub run {
 sub _hook {
   my ($app, $name) = (shift, shift);
   my $hook = $app->can("getopt_$name") || __PACKAGE__->can("_hook_$name");
-  $app->$hook(@_);
+  $app->$hook(@_) if $hook;
 }
 
 sub _hook_post_process_argv {
@@ -82,7 +85,7 @@ Getopt::App - Write and test your script with ease
   use Getopt::App -signatures;
 
   # See "APPLICATION METHODS"
-  sub getopt_post_process_argv ($app, $argv) { ... }
+  sub getopt_post_process_argv ($app, $argv, $state) { ... }
   sub getopt_configure ($app) { ... }
 
   # run() must be the last statement in the script
@@ -158,6 +161,33 @@ The default behavior is to check if the first item in C<$argv> starts with a
 hyphen, and C<die> with an error message if so:
 
   Invalid argument or argument order: @$argv\n
+
+=head2 getopt_post_process_exit_value
+
+  $app->getopt_post_process_exit_value($exit_value_ref);
+
+A hook to be run after the C</run> function has been called. C<$exit_value_ref>
+is a scalar ref, holding the return value from L</run> which could be any
+value, not just 0-255. This value can then be changed to change the exit value
+from the program.
+
+  sub getopt_post_process_exit_value ($app, $exit_value) {
+    $$exit_value = int(1 + rand 10);
+  }
+
+=head2 getopt_pre_process_argv
+
+  $app->getopt_pre_process_argv($argv);
+
+This method can be defined to pre-process C<$argv> before it is passed on to
+L<Getopt::Long/GetOptionsFromArray>. Example:
+
+  sub getopt_pre_process_argv ($app, $argv) {
+    $app->{sub_command} = shift @$argv if @$argv and $argv->[0] =~ m!^[a-z]!;
+  }
+
+This method can C<die> and optionally set C<$!> to avoid calling the actual
+L</run> function.
 
 =head1 EXPORTED FUNCTIONS
 
