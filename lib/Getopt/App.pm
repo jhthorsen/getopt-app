@@ -10,9 +10,7 @@ use Scalar::Util qw(looks_like_number);
 
 sub import {
   my ($class, @flags) = @_;
-
   my $caller = caller;
-  croak "@{[(caller)[1]]} must have a package definition!" if $caller eq 'main';
 
   $_->import for qw(strict warnings utf8);
   feature->import(':5.16');
@@ -225,9 +223,6 @@ The above will save you from a lot of typing, since it's the same as:
 
   # Optional - Requires perl 5.26
   use experimental qw(signatures)
-
-Note that the file this module is imported into I<must> have a package
-definition!
 
 =head1 COPYRIGHT AND LICENSE
 

@@ -7,9 +7,6 @@ subtest import => sub {
   is strict_app(), undef, 'strict_app';
   like $@, qr{Global symbol}, 'error message';
 
-  is no_package_app(), undef, 'no_package_app';
-  like $@, qr{must have a package}, 'error message';
-
   ok My::Script->can('new'), 'new()';
   ok My::Script->can('run'), 'run()';
 };
@@ -41,10 +38,6 @@ subtest post_process_argv => sub {
 };
 
 done_testing;
-
-sub no_package_app {
-  eval 'package main; use Getopt::App; 1';
-}
 
 sub post_process_argv_app {
   eval <<'HERE' or die $@;
