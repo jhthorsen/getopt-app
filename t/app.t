@@ -31,11 +31,13 @@ subtest run => sub {
 };
 
 subtest post_process_argv => sub {
+  use Getopt::App -capture;
   my $post_process_argv_app = post_process_argv_app();
   is $post_process_argv_app->([]), 3, 'empty exit';
   is_deeply [@main::POST_PROGRESS], [[], {valid => 1}], 'empty args';
 
-  is $post_process_argv_app->([qw(-x)]), 1, 'invalid exit';
+  is_deeply capture($post_process_argv_app, [qw(-x)]), ["", "Option x requires an argument\n", 1],
+    'invalid exit';
   is_deeply [@main::POST_PROGRESS], [[], {valid => 0}], 'invalid args';
 };
 

@@ -8,6 +8,26 @@ use Carp qw(croak);
 use Getopt::Long ();
 use Scalar::Util qw(looks_like_number);
 
+sub capture {
+  my ($app, $argv) = @_;
+  my ($exit_value, $stderr, $stdout) = (-1, '', '');
+
+  local *STDERR;
+  local *STDOUT;
+  open STDERR, '>', \$stderr;
+  open STDOUT, '>', \$stdout;
+  ($!, $@) = (0, '');
+  eval {
+    $exit_value = $app->($argv || [@ARGV]);
+    1;
+  } or do {
+    print STDERR $@;
+    $exit_value = int $!;
+  };
+
+  return [$stdout, $stderr, $exit_value];
+}
+
 sub import {
   my ($class, @flags) = @_;
   my $caller = caller;
@@ -15,16 +35,23 @@ sub import {
   $_->import for qw(strict warnings utf8);
   feature->import(':5.16');
 
+  my $skip_default;
+  no strict qw(refs);
   while (my $flag = shift @flags) {
-    if ($flag eq '-signatures') {
+    if ($flag eq '-capture') {
+      *{"$caller\::capture"} = \&capture;
+      $skip_default = 1;
+    }
+    elsif ($flag eq '-signatures') {
       require experimental;
       experimental->import(qw(signatures));
     }
   }
 
-  no strict qw(refs);
-  *{"$caller\::new"} = \&new unless $caller->can('new');
-  *{"$caller\::run"} = \&run;
+  unless ($skip_default) {
+    *{"$caller\::new"} = \&new unless $caller->can('new');
+    *{"$caller\::run"} = \&run;
+  }
 }
 
 sub new {
@@ -121,12 +148,18 @@ The example script above can be run like any other script:
 
   use Test::More;
   use Cwd qw(abs_path);
+  use Getopt::App -capture;
 
   # Sourcing the script returns a callback
   my $app = do(abs_path('./bin/myapp'));
 
   # The callback can be called with any @ARGV
-  is $app->([qw(--name superwoman)]), 42, 'script ran as expected';
+  subtest name => sub {
+    my $got = capture($app, [qw(--name superwoman)]);
+    is $got->[0], "superwoman\n", 'stdout';
+    is $got->[1], '', 'stderr';
+    is $got->[2], 42, 'exit value';
+  };
 
   done_testing;
 
@@ -198,6 +231,17 @@ L</run> function.
 
 =head1 EXPORTED FUNCTIONS
 
+=head2 capture
+
+  use Getopt::App -capture;
+  my $app = do '/path/to/repo/bin/myapp';
+  my $array_ref = capture($app, [@ARGV]); # [$stdout, $stderr, $exit_value]
+
+Used to run an C<$app> and capture STDOUT, STDERR and the exit value in that
+order in C<$array_ref>. This function will also capture C<die>. C<$@> will be
+set and captured in the second C<$array_ref> element, and C<$exit_value> will
+be set to C<$!>.
+
 =head2 new
 
   my $obj = new($class, %args);
@@ -246,20 +290,38 @@ In the example above, C<@extra> gets populated, since there is a non-flag value
 
 =head2 import
 
-  package My::Script;
   use Getopt::App;
-  use Getopt::App -signatures;
+  use Getopt::App @flags;
 
-The above will save you from a lot of typing, since it's the same as:
+=over 2
+
+=item * Default
+
+  use Getopt::App;
+
+Passing in no flags will export the default functions L</new> and L</run>. In
+addition it will save you from a lot of typing, since it will also import the
+following:
 
   use strict;
   use warnings;
   use utf8;
   use feature ':5.16';
-  sub run { Getopt::App::run(@_) }
 
-  # Optional - Requires perl 5.26
-  use experimental qw(signatures)
+=item * Signatures
+
+  use Getopt::App -signatures;
+
+Same as L</Default>, but will also import L<experimental/signatures>. This
+requires Perl 5.20+.
+
+=item * Capture
+
+  use Getopt::App -capture;
+
+This will only export L</capture>.
+
+=back
 
 =head1 COPYRIGHT AND LICENSE
 
