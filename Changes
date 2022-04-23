@@ -1,5 +1,7 @@
 Revision history for perl distribution Getopt-App
 
 0.01 Not Released
+ - Can parse arguments and call the run() callback
+ - The script can easily be tested
  - Depends on Getopt::Long 2.00
  - Started project
