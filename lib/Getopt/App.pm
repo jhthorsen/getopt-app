@@ -9,8 +9,9 @@ use Getopt::Long ();
 use List::Util qw(first);
 use Scalar::Util qw(looks_like_number);
 
-my $opt_comment_re = qr{\s+\#\s+};
+our $VERSION = '0.01';
 
+my $opt_comment_re = qr{\s+\#\s+};
 our ($OPTIONS, $SUBCOMMANDS);
 
 sub capture {

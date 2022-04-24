@@ -20,7 +20,7 @@ my %WriteMakefileArgs = (
       homepage   => 'https://github.com/jhthorsen/getopt-app',
       repository => {
         type => 'git',
-        url  => 'https://github.com/jhthorsen/getopt-app',
+        url  => 'https://github.com/jhthorsen/getopt-app.git',
         web  => 'https://github.com/jhthorsen/getopt-app',
       },
     },
