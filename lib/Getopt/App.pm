@@ -293,7 +293,7 @@ hyphen, and C<die> with an error message if so:
 
   $app->getopt_post_process_exit_value($exit_value_ref);
 
-A hook to be run after the C</run> function has been called. C<$exit_value_ref>
+A hook to be run after the L</run> function has been called. C<$exit_value_ref>
 is a scalar ref, holding the return value from L</run> which could be any
 value, not just 0-255. This value can then be changed to change the exit value
 from the program.
