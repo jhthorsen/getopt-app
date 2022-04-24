@@ -67,6 +67,11 @@ sub import {
       require experimental;
       experimental->import(qw(signatures));
     }
+    elsif ($flag !~ /^-/) {
+      croak "package definition required - cannot extend main with $flag!" if $caller eq 'main';
+      croak "require $flag FAIL $@" unless eval "require $flag;1";
+      push @{"${caller}::ISA"}, $flag;
+    }
   }
 
   unless ($skip_default) {
@@ -358,7 +363,8 @@ In the example above, C<@extra> gets populated, since there is a non-flag value
 =head2 import
 
   use Getopt::App;
-  use Getopt::App @flags;
+  use Getopt::App 'My::Script::Base', -signatures;
+  use Getopt::App -capture;
 
 =over 2
 
@@ -381,6 +387,14 @@ it will also import the following:
 
 Same as L</Default>, but will also import L<experimental/signatures>. This
 requires Perl 5.20+.
+
+=item * Class name
+
+  package My::Script::Foo;
+  use Getopt::App 'My::Script';
+
+Same as L</Default> but will also make C<My::Script::Foo> inherit from
+L<My::Script>. Note that a package definition is required.
 
 =item * Capture
 
