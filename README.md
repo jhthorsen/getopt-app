@@ -11,19 +11,20 @@ Getopt::App - Write and test your script with ease
     use Getopt::App -signatures;
 
     # See "APPLICATION METHODS"
-    sub getopt_post_process_argv ($app, $argv) { ... }
+    sub getopt_post_process_argv ($app, $argv, $state) { ... }
     sub getopt_configure ($app) { ... }
 
     # run() must be the last statement in the script
     run(
 
-      # Specify your Getopt::Long options
-      'h|help',
-      'v+',
-      'name=s',
+      # Specify your Getopt::Long options and optionally a help text
+      'h|help # Output help',
+      'v+     # Verbose output',
+      'name=s # Specify a name',
 
       # Here is the main sub that will run the script
       sub ($app, @extra) {
+        return print extract_usage() if $app->{h};
         say $app->{name} // 'no name'; # access command line options
         return 42; # Reture value is used as exit code
       }
@@ -40,12 +41,18 @@ The example script above can be run like any other script:
 
     use Test::More;
     use Cwd qw(abs_path);
+    use Getopt::App -capture;
 
     # Sourcing the script returns a callback
     my $app = do(abs_path('./bin/myapp'));
 
     # The callback can be called with any @ARGV
-    is $app->([qw(--name superwoman)]), 42, 'script ran as expected';
+    subtest name => sub {
+      my $got = capture($app, [qw(--name superwoman)]);
+      is $got->[0], "superwoman\n", 'stdout';
+      is $got->[1], '', 'stderr';
+      is $got->[2], 42, 'exit value';
+    };
 
     done_testing;
 
@@ -55,6 +62,8 @@ The example script above can be run like any other script:
 [Getopt::Long](https://metacpan.org/pod/Getopt%3A%3ALong) with a very simple API. In addition it makes it very easy to
 test your script, since the script file can be sourced without actually being
 run.
+
+This module is currently EXPERIMENTAL, but is unlikely to change much.
 
 # APPLICATION METHODS
 
@@ -88,7 +97,83 @@ hyphen, and `die` with an error message if so:
 
     Invalid argument or argument order: @$argv\n
 
+## getopt\_post\_process\_exit\_value
+
+    $app->getopt_post_process_exit_value($exit_value_ref);
+
+A hook to be run after the `/run` function has been called. `$exit_value_ref`
+is a scalar ref, holding the return value from ["run"](#run) which could be any
+value, not just 0-255. This value can then be changed to change the exit value
+from the program.
+
+    sub getopt_post_process_exit_value ($app, $exit_value) {
+      $$exit_value = int(1 + rand 10);
+    }
+
+## getopt\_pre\_process\_argv
+
+    $app->getopt_pre_process_argv($argv);
+
+This method can be defined to pre-process `$argv` before it is passed on to
+["GetOptionsFromArray" in Getopt::Long](https://metacpan.org/pod/Getopt%3A%3ALong#GetOptionsFromArray). Example:
+
+    sub getopt_pre_process_argv ($app, $argv) {
+      $app->{subcommand} = shift @$argv if @$argv and $argv->[0] =~ m!^[a-z]!;
+    }
+
+This method can `die` and optionally set `$!` to avoid calling the actual
+["run"](#run) function.
+
+## getopt\_subcommands
+
+    $subcommands = $app->getopt_subcommands;
+
+This method must be defined in the script to enable sub commands. The return
+value must be either `undef` to disable subcommands or an array-ref of
+array-refs like this:
+
+    [["subname", "/abs/path/to/sub-command-script", "help text"], ...]
+
+The first element in each array-ref "subname" will be matched against the first
+argument passed to the script, and when matched the "sub-command-script" will
+be sourced and run inside the same Perl process. The sub command script must
+also use [Getopt::App](https://metacpan.org/pod/Getopt%3A%3AApp) for this to work properly.
+
+See [https://github.com/jhthorsen/getopt-app/tree/main/example](https://github.com/jhthorsen/getopt-app/tree/main/example) for a working
+example.
+
 # EXPORTED FUNCTIONS
+
+## capture
+
+    use Getopt::App -capture;
+    my $app = do '/path/to/bin/myapp';
+    my $array_ref = capture($app, [@ARGV]); # [$stdout, $stderr, $exit_value]
+
+Used to run an `$app` and capture STDOUT, STDERR and the exit value in that
+order in `$array_ref`. This function will also capture `die`. `$@` will be
+set and captured in the second `$array_ref` element, and `$exit_value` will
+be set to `$!`.
+
+## extract\_usage
+
+    my $str = extract_usage($section, $file);
+    my $str = extract_usage(); # Default to "SYNOPSIS" from current file
+
+Will extract a `$section` from POD `$file` and append command line options
+when called from inside of ["run"](#run). Command line options can optionally have a
+description with "spaces-hash-spaces-description", like this:
+
+    run(
+      'o|option  # Some description',
+      'v|verbose # Enable verbose output',
+      sub {
+        ...
+      },
+    );
+
+This function will _not_ be exported if a function with the same name already
+exists in the script.
 
 ## new
 
@@ -100,7 +185,8 @@ object:
 
     my $app = Application::Class->new(\%args);
 
-It will _not_ be exported if it is already defined in the script.
+This function will _not_ be exported if a function with the same name already
+exists in the script.
 
 ## run
 
@@ -138,20 +224,43 @@ In the example above, `@extra` gets populated, since there is a non-flag value
 
 ## import
 
-    package My::Script;
     use Getopt::App;
-    use Getopt::App -signatures;
+    use Getopt::App 'My::Script::Base', -signatures;
+    use Getopt::App -capture;
 
-The above will save you from a lot of typing, since it's the same as:
+- Default
 
-    use strict;
-    use warnings;
-    use utf8;
-    use feature ':5.16';
-    sub run { Getopt::App::run(@_) }
+        use Getopt::App;
 
-    # Optional - Requires perl 5.26
-    use experimental qw(signatures)
+    Passing in no flags will export the default functions ["extract\_usage"](#extract_usage),
+    ["new"](#new) and ["run"](#run). In addition it will save you from a lot of typing, since
+    it will also import the following:
+
+        use strict;
+        use warnings;
+        use utf8;
+        use feature ':5.16';
+
+- Signatures
+
+        use Getopt::App -signatures;
+
+    Same as ["Default"](#default), but will also import ["signatures" in experimental](https://metacpan.org/pod/experimental#signatures). This
+    requires Perl 5.20+.
+
+- Class name
+
+        package My::Script::Foo;
+        use Getopt::App 'My::Script';
+
+    Same as ["Default"](#default) but will also make `My::Script::Foo` inherit from
+    [My::Script](https://metacpan.org/pod/My%3A%3AScript). Note that a package definition is required.
+
+- Capture
+
+        use Getopt::App -capture;
+
+    This will only export ["capture"](#capture).
 
 # COPYRIGHT AND LICENSE
 

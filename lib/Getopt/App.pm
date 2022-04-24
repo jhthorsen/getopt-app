@@ -254,6 +254,8 @@ L<Getopt::Long> with a very simple API. In addition it makes it very easy to
 test your script, since the script file can be sourced without actually being
 run.
 
+This module is currently EXPERIMENTAL, but is unlikely to change much.
+
 =head1 APPLICATION METHODS
 
 These methods are optional, but can be defined in your script to override the
@@ -350,7 +352,7 @@ be set to C<$!>.
   my $str = extract_usage(); # Default to "SYNOPSIS" from current file
 
 Will extract a C<$section> from POD C<$file> and append command line options
-when called from inside of </run>. Command line options can optionally have a
+when called from inside of L</run>. Command line options can optionally have a
 description with "spaces-hash-spaces-description", like this:
 
   run(
