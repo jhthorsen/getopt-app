@@ -58,7 +58,7 @@ sub hooks_app {
 
     sub getopt_pre_process_argv {
       my ($app, $argv) = @_;
-      $app->{sub_command} = shift @$argv if @$argv and $argv->[0] =~ m!^[a-z]!;
+      $app->{subcommand} = shift @$argv if @$argv and $argv->[0] =~ m!^[a-z]!;
     }
 
     sub getopt_post_process_exit_value {
@@ -68,7 +68,7 @@ sub hooks_app {
 
     run('x=i', sub {
       my ($app, @extra) = @_;
-      my $method = sprintf 'command_%s', $app->{sub_command} // 'unknown';
+      my $method = sprintf 'command_%s', $app->{subcommand} // 'unknown';
       return $app->can($method) && $app->$method;
     });
 HERE

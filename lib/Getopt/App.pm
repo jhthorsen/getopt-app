@@ -6,9 +6,12 @@ use utf8;
 
 use Carp qw(croak);
 use Getopt::Long ();
+use List::Util qw(first);
 use Scalar::Util qw(looks_like_number);
 
 my $opt_comment_re = qr{\s+\#\s+};
+
+our ($OPTIONS, $SUBCOMMANDS);
 
 sub capture {
   my ($app, $argv) = @_;
@@ -46,7 +49,8 @@ sub extract_usage {
   $usage =~ s!^Usage:\n\s+([A-Z])!$1!s;    # Remove "Usage" header if SYNOPSIS has a description
   $usage =~ s!^    !!gm;
 
-  return join '', $usage, _options_to_usage(\@Getopt::App::RULES);
+  return join '', $usage, _usage_for_subcommands($SUBCOMMANDS || []),
+    _usage_for_options($OPTIONS || []);
 }
 
 sub import {
@@ -94,23 +98,23 @@ sub run {
 
   my $cb   = pop @rules;
   my $argv = ref $rules[0] eq 'ARRAY' ? shift @rules : [@ARGV];
-  local @Getopt::App::RULES = @rules;
+  local $OPTIONS = [@rules];
   @rules = map {s!$opt_comment_re.*$!!r} @rules;
 
   my $app = $class->new;
   _hook($app, pre_process_argv => $argv);
 
-  my @configure
-    = $app->can('getopt_configure')
-    ? $app->getopt_configure
-    : qw(bundling no_auto_abbrev no_ignore_case pass_through require_order);
+  local $SUBCOMMANDS = _hook($app, 'subcommands');
+  my $exit_value = $SUBCOMMANDS ? _subcommand($app, $SUBCOMMANDS, $argv) : undef;
+  return $exit_value if defined $exit_value;
 
-  my $prev  = Getopt::Long::Configure(@configure);
-  my $valid = Getopt::Long::GetOptionsFromArray($argv, $app, @rules) ? 1 : 0;
+  my @configure = _hook($app, 'configure');
+  my $prev      = Getopt::Long::Configure(@configure);
+  my $valid     = Getopt::Long::GetOptionsFromArray($argv, $app, @rules) ? 1 : 0;
   Getopt::Long::Configure($prev);
   _hook($app, post_process_argv => $argv, {valid => $valid});
 
-  my $exit_value = $valid ? $app->$cb(@$argv) : 1;
+  $exit_value = $valid ? $app->$cb(@$argv) : 1;
   _hook($app, post_process_exit_value => \$exit_value);
   $exit_value = 0       unless looks_like_number $exit_value;
   exit(int $exit_value) unless $Getopt::App::APP_CLASS;
@@ -120,8 +124,10 @@ sub run {
 sub _hook {
   my ($app, $name) = (shift, shift);
   my $hook = $app->can("getopt_$name") || __PACKAGE__->can("_hook_$name");
-  $app->$hook(@_) if $hook;
+  return $hook ? $app->$hook(@_) : undef;
 }
+
+sub _hook_configure {qw(bundling no_auto_abbrev no_ignore_case pass_through require_order)}
 
 sub _hook_post_process_argv {
   my ($app, $argv, $state) = @_;
@@ -131,12 +137,26 @@ sub _hook_post_process_argv {
   die "Invalid argument or argument order: @$argv\n";
 }
 
-sub _options_to_usage {
+sub _subcommand {
+  my ($app, $subcommands, $argv) = @_;
+  return undef unless $argv->[0] and $argv->[0] =~ m!^[a-z]!;
+
+  die "Unknown subcommand: $argv->[0]\n"
+    unless my $subcommand = first { $_->[0] eq $argv->[0] } @$subcommands;
+
+  local $Getopt::App::APP_CLASS;
+  local $@;
+  my $subapp = do($subcommand->[1]);
+  croak "Unable to load subcommand $argv->[0]: $@" if $@;
+  return $subapp->([@$argv[1 .. $#$argv]]);
+}
+
+sub _usage_for_options {
   my ($rules) = @_;
   return '' unless @$rules;
 
   my ($len, @options) = (0);
-  for (@Getopt::App::RULES) {
+  for (@$rules) {
     my @o = split $opt_comment_re, $_, 2;
     $o[0] =~ s/(=[si][@%]?|\!|\+)$//;
     $o[0] = join ', ',
@@ -145,11 +165,24 @@ sub _options_to_usage {
 
     my $l = length $o[0];
     $len = $l if $l > $len;
-
     push @options, \@o;
   }
 
   return "Options:\n" . join('', map { sprintf "  %-${len}s  %s\n", @$_ } @options) . "\n";
+}
+
+sub _usage_for_subcommands {
+  my ($subcommands) = @_;
+  return '' unless @$subcommands;
+
+  my ($len, @cmds) = (0);
+  for my $s (@$subcommands) {
+    my $l = length $s->[0];
+    $len = $l if $l > $len;
+    push @cmds, [$s->[0], $s->[2] // ''];
+  }
+
+  return "Subcommands:\n" . join('', map { sprintf "  %-${len}s  %s\n", @$_ } @cmds) . "\n";
 }
 
 1;
@@ -274,18 +307,36 @@ This method can be defined to pre-process C<$argv> before it is passed on to
 L<Getopt::Long/GetOptionsFromArray>. Example:
 
   sub getopt_pre_process_argv ($app, $argv) {
-    $app->{sub_command} = shift @$argv if @$argv and $argv->[0] =~ m!^[a-z]!;
+    $app->{subcommand} = shift @$argv if @$argv and $argv->[0] =~ m!^[a-z]!;
   }
 
 This method can C<die> and optionally set C<$!> to avoid calling the actual
 L</run> function.
+
+=head2 getopt_subcommands
+
+  $subcommands = $app->getopt_subcommands;
+
+This method must be defined in the script to enable sub commands. The return
+value must be either C<undef> to disable subcommands or an array-ref of
+array-refs like this:
+
+  [["subname", "/abs/path/to/sub-command-script", "help text"], ...]
+
+The first element in each array-ref "subname" will be matched against the first
+argument passed to the script, and when matched the "sub-command-script" will
+be sourced and run inside the same Perl process. The sub command script must
+also use L<Getopt::App> for this to work properly.
+
+See L<https://github.com/jhthorsen/getopt-app/tree/main/example> for a working
+example.
 
 =head1 EXPORTED FUNCTIONS
 
 =head2 capture
 
   use Getopt::App -capture;
-  my $app = do '/path/to/repo/bin/myapp';
+  my $app = do '/path/to/bin/myapp';
   my $array_ref = capture($app, [@ARGV]); # [$stdout, $stderr, $exit_value]
 
 Used to run an C<$app> and capture STDOUT, STDERR and the exit value in that
