@@ -8,6 +8,8 @@ use Carp qw(croak);
 use Getopt::Long ();
 use Scalar::Util qw(looks_like_number);
 
+my $opt_comment_re = qr{\s+\#\s+};
+
 sub capture {
   my ($app, $argv) = @_;
   my ($exit_value, $stderr, $stdout) = (-1, '', '');
@@ -26,6 +28,25 @@ sub capture {
   };
 
   return [$stdout, $stderr, $exit_value];
+}
+
+sub extract_usage {
+  my %pod2usage;
+  $pod2usage{'-sections'} = shift;
+  $pod2usage{'-input'}    = shift || (caller)[1];
+  $pod2usage{'-verbose'}  = 99 if $pod2usage{'-sections'};
+
+  require Pod::Usage;
+  open my $USAGE, '>', \my $usage;
+  Pod::Usage::pod2usage(-exitval => 'noexit', -output => $USAGE, %pod2usage);
+  close $USAGE;
+
+  $usage //= '';
+  $usage =~ s!^(.*?)\n!!s if $pod2usage{'-sections'};
+  $usage =~ s!^Usage:\n\s+([A-Z])!$1!s;    # Remove "Usage" header if SYNOPSIS has a description
+  $usage =~ s!^    !!gm;
+
+  return join '', $usage, _options_to_usage(\@Getopt::App::RULES);
 }
 
 sub import {
@@ -49,8 +70,9 @@ sub import {
   }
 
   unless ($skip_default) {
-    *{"$caller\::new"} = \&new unless $caller->can('new');
-    *{"$caller\::run"} = \&run;
+    *{"$caller\::extract_usage"} = \&extract_usage unless $caller->can('extract_usage');
+    *{"$caller\::new"}           = \&new           unless $caller->can('new');
+    *{"$caller\::run"}           = \&run;
   }
 }
 
@@ -67,6 +89,8 @@ sub run {
 
   my $cb   = pop @rules;
   my $argv = ref $rules[0] eq 'ARRAY' ? shift @rules : [@ARGV];
+  local @Getopt::App::RULES = @rules;
+  @rules = map {s!$opt_comment_re.*$!!r} @rules;
 
   my $app = $class->new;
   _hook($app, pre_process_argv => $argv);
@@ -102,6 +126,27 @@ sub _hook_post_process_argv {
   die "Invalid argument or argument order: @$argv\n";
 }
 
+sub _options_to_usage {
+  my ($rules) = @_;
+  return '' unless @$rules;
+
+  my ($len, @options) = (0);
+  for (@Getopt::App::RULES) {
+    my @o = split $opt_comment_re, $_, 2;
+    $o[0] =~ s/(=[si][@%]?|\!|\+)$//;
+    $o[0] = join ', ',
+      map { length($_) == 1 ? "-$_" : "--$_" } sort { length($b) <=> length($a) } split /\|/, $o[0];
+    $o[1] //= '';
+
+    my $l = length $o[0];
+    $len = $l if $l > $len;
+
+    push @options, \@o;
+  }
+
+  return "Options:\n" . join('', map { sprintf "  %-${len}s  %s\n", @$_ } @options) . "\n";
+}
+
 1;
 
 =encoding utf8
@@ -125,13 +170,14 @@ Getopt::App - Write and test your script with ease
   # run() must be the last statement in the script
   run(
 
-    # Specify your Getopt::Long options
-    'h|help',
-    'v+',
-    'name=s',
+    # Specify your Getopt::Long options and optionally a help text
+    'h|help # Output help',
+    'v+     # Verbose output',
+    'name=s # Specify a name',
 
     # Here is the main sub that will run the script
     sub ($app, @extra) {
+      return print extract_usage() if $app->{h};
       say $app->{name} // 'no name'; # access command line options
       return 42; # Reture value is used as exit code
     }
@@ -242,6 +288,26 @@ order in C<$array_ref>. This function will also capture C<die>. C<$@> will be
 set and captured in the second C<$array_ref> element, and C<$exit_value> will
 be set to C<$!>.
 
+=head2 extract_usage
+
+  my $str = extract_usage($section, $file);
+  my $str = extract_usage(); # Default to "SYNOPSIS" from current file
+
+Will extract a C<$section> from POD C<$file> and append command line options
+when called from inside of </run>. Command line options can optionally have a
+description with "spaces-hash-spaces-description", like this:
+
+  run(
+    'o|option  # Some description',
+    'v|verbose # Enable verbose output',
+    sub {
+      ...
+    },
+  );
+
+This function will I<not> be exported if a function with the same name already
+exists in the script.
+
 =head2 new
 
   my $obj = new($class, %args);
@@ -252,7 +318,8 @@ object:
 
   my $app = Application::Class->new(\%args);
 
-It will I<not> be exported if it is already defined in the script.
+This function will I<not> be exported if a function with the same name already
+exists in the script.
 
 =head2 run
 
@@ -299,9 +366,9 @@ In the example above, C<@extra> gets populated, since there is a non-flag value
 
   use Getopt::App;
 
-Passing in no flags will export the default functions L</new> and L</run>. In
-addition it will save you from a lot of typing, since it will also import the
-following:
+Passing in no flags will export the default functions L</extract_usage>,
+L</new> and L</run>. In addition it will save you from a lot of typing, since
+it will also import the following:
 
   use strict;
   use warnings;
