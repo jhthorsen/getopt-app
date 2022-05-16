@@ -7,7 +7,6 @@ use utf8;
 use Carp qw(croak);
 use Getopt::Long ();
 use List::Util qw(first);
-use Scalar::Util qw(looks_like_number);
 
 our $VERSION = '0.01';
 
@@ -116,8 +115,9 @@ sub run {
   _call($app, getopt_post_process_argv => $argv, {valid => $valid});
 
   $exit_value = $valid ? $app->$cb(@$argv) : 1;
-  _call($app, getopt_post_process_exit_value => \$exit_value);
-  $exit_value = 0       unless looks_like_number $exit_value;
+  $exit_value = _call($app, getopt_post_process_exit_value => $exit_value) // $exit_value;
+  $exit_value = 0   unless $exit_value and $exit_value =~ m!^\d{1,3}$!;
+  $exit_value = 255 unless $exit_value < 255;
   exit(int $exit_value) unless $Getopt::App::APP_CLASS;
   return $exit_value;
 }
@@ -291,15 +291,15 @@ hyphen, and C<die> with an error message if so:
 
 =head2 getopt_post_process_exit_value
 
-  $app->getopt_post_process_exit_value($exit_value_ref);
+  $exit_value = $app->getopt_post_process_exit_value($exit_value);
 
 A method to be called after the L</run> function has been called.
-C<$exit_value_ref> is a scalar ref, holding the return value from L</run> which
-could be any value, not just 0-255. This value can then be changed to change
-the exit value from the program.
+C<$exit_value> holds the return value from L</run> which could be any value,
+not just 0-255. This value can then be changed to change the exit value from
+the program.
 
   sub getopt_post_process_exit_value ($app, $exit_value) {
-    $$exit_value = int(1 + rand 10);
+    return int(1 + rand 10);
   }
 
 =head2 getopt_pre_process_argv
