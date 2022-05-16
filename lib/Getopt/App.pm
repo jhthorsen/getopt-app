@@ -310,7 +310,7 @@ This method can be defined to pre-process C<$argv> before it is passed on to
 L<Getopt::Long/GetOptionsFromArray>. Example:
 
   sub getopt_pre_process_argv ($app, $argv) {
-    $app->{subcommand} = shift @$argv if @$argv and $argv->[0] =~ m!^[a-z]!;
+    $app->{first_non_option} = shift @$argv if @$argv and $argv->[0] =~ m!^[a-z]!;
   }
 
 This method can C<die> and optionally set C<$!> to avoid calling the actual
@@ -328,7 +328,7 @@ array-refs like this:
 
 The first element in each array-ref "subname" will be matched against the first
 argument passed to the script, and when matched the "sub-command-script" will
-be sourced and run inside the same Perl process. The sub command script must
+be sourced and run inside the same perl process. The sub command script must
 also use L<Getopt::App> for this to work properly.
 
 See L<https://github.com/jhthorsen/getopt-app/tree/main/example> for a working
@@ -349,12 +349,14 @@ be set to C<$!>.
 
 =head2 extract_usage
 
+  # Default to "SYNOPSIS" from current file
   my $str = extract_usage($section, $file);
-  my $str = extract_usage(); # Default to "SYNOPSIS" from current file
+  my $str = extract_usage($section);
+  my $str = extract_usage();
 
-Will extract a C<$section> from POD C<$file> and append command line options
-when called from inside of L</run>. Command line options can optionally have a
-description with "spaces-hash-spaces-description", like this:
+Will extract a C<$section> from POD C<$file> and append command line option
+descriptions when called from inside of L</run>. Command line options can
+optionally have a description with "spaces-hash-spaces-description", like this:
 
   run(
     'o|option  # Some description',

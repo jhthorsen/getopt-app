@@ -24,20 +24,20 @@ subtest 'dispatch' => sub {
 
   $res = capture($app, [qw(beans a 24)]);
   is $res->[2], 11, 'invalid exit';
-  like $res->[0], qr{\bcool-beans/a/24$}, 'beans stdout' or diag "ERROR: $res->[1]";
+  like $res->[0], qr{\bbeans\.pl/a/24$}, 'beans stdout' or diag "ERROR: $res->[1]";
 
   $res = capture($app, [qw(coffee b 42)]);
   is $res->[2], 12, 'invalid exit';
-  like $res->[0], qr{\bcool-coffee/b/42$}, 'coffee stdout' or diag "ERROR: $res->[1]";
+  like $res->[0], qr{\bcoffee\.pl/b/42$}, 'coffee stdout' or diag "ERROR: $res->[1]";
 };
 
 subtest 'help' => sub {
   my $res = capture($app, [qw(-h)]);
   is $res->[0], <<'HERE', 'help';
 Subcommands:
-  beans    Try it
-  coffee   Try it
-  invalid  Try it
+  beans    Try beans.pl
+  coffee   Try coffee.pl
+  invalid  Try invalid.pl
 
 Options:
   -h  
