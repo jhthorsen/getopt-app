@@ -10,8 +10,55 @@ use List::Util qw(first);
 
 our $VERSION = '0.02';
 
-my $opt_comment_re = qr{\s+\#\s+};
-our ($OPTIONS, $SUBCOMMANDS);
+our ($OPT_COMMENT_RE, $OPTIONS, $SUBCOMMANDS) = (qr{\s+\#\s+});
+
+sub bundle {
+  my ($class, $script, $OUT) = (@_, \*STDOUT);
+  my ($package, @script);
+
+  open my $SCRIPT, '<', $script or croak "Can't read $script: $!";
+  while (my $line = readline $SCRIPT) {
+    if ($line =~ m!^\s*package\s+\S+\s*;!) {    # look for app class name
+      $package .= $line;
+      last;
+    }
+    elsif ($. == 1) {                           # look for hashbang
+      $line =~ m/^#!/ ? print {$OUT} $line : do { print {$OUT} "#!$^X\n"; push @script, $line };
+    }
+    else {
+      push @script, $line;
+      last if $line =~ m!^[^#]+;!;
+    }
+  }
+
+  my $out_line = '';
+  open my $SELF, '<', __FILE__ or croak "Can't read Getopt::App: $!";
+  while (my $line = readline $SELF) {
+    next if $line =~ m!(?:\bVERSION\s|^\s*$)!;                 # TODO: Should version get skipped?
+    next if $line =~ m!^sub bundle\s\{! .. $line =~ m!^}$!;    # skip bundle()
+    last if $line =~ m!^1;\s*$!;                               # do not include POD
+
+    chomp $line;
+    if ($line =~ m!^sub\s!) {
+      print {$OUT} $out_line, "\n" if $out_line;
+      $line =~ m!\}$! ? print {$OUT} $line, "\n" : ($out_line = $line);
+    }
+    elsif ($line =~ m!^}$!) {
+      print {$OUT} $out_line, $line, "\n";
+      $out_line = '';
+    }
+    else {
+      $line =~ s!^[ ]{2,}!!;    # remove leading white space
+      $line =~ s!\#\s.*!!;      # remove comments
+      $out_line .= $line;
+    }
+  }
+
+  print {$OUT} qq(BEGIN{\$INC{'Getopt/App.pm'}='BUNDLED'}\n);
+  print {$OUT} +($package || "package main\n");
+  print {$OUT} @script;
+  print {$OUT} $_ while readline $SCRIPT;
+}
 
 sub capture {
   my ($app, $argv) = @_;
@@ -99,7 +146,7 @@ sub run {
   my $cb   = pop @rules;
   my $argv = ref $rules[0] eq 'ARRAY' ? shift @rules : [@ARGV];
   local $OPTIONS = [@rules];
-  @rules = map {s!$opt_comment_re.*$!!r} @rules;
+  @rules = map {s!$OPT_COMMENT_RE.*$!!r} @rules;
 
   my $app = $class->new;
   _call($app, getopt_pre_process_argv => $argv);
@@ -158,7 +205,7 @@ sub _usage_for_options {
 
   my ($len, @options) = (0);
   for (@$rules) {
-    my @o = split $opt_comment_re, $_, 2;
+    my @o = split $OPT_COMMENT_RE, $_, 2;
     $o[0] =~ s/(=[si][@%]?|\!|\+)$//;
     $o[0] = join ', ',
       map { length($_) == 1 ? "-$_" : "--$_" } sort { length($b) <=> length($a) } split /\|/, $o[0];
@@ -415,6 +462,22 @@ In the example above, C<@extra> gets populated, since there is a non-flag value
 "cool" after a list of valid command line options.
 
 =head1 METHODS
+
+=head2 bundle
+
+  Getopt::App->bundle($path_to_script);
+  Getopt::App->bundle($path_to_script, $fh);
+
+This method can be used to combine L<Getopt::App> and C<$path_to_script> into a
+a single script that does not need to have L<Getopt::App> installed from CPAN.
+This is for example useful for sysadmin scripts that otherwize only depends on
+core Perl modules.
+
+The script will be printed to C<$fh>, which defaults to C<STDOUT>.
+
+Example usage:
+
+  perl -MGetopt::App -e'Getopt::App->bundle(shift)' ./src/my-script.pl > ./bin/my-script;
 
 =head2 import
 

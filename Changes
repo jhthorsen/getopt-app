@@ -1,5 +1,8 @@
 Revision history for perl distribution Getopt-App
 
+0.03 Not Released
+ - Add bundle() for creating scripts that bundles Getopt::App
+
 0.02 2022-05-17T08:41:27+0900
  - Changed getopt_post_process_exit_value() to no longer take a ref
  - Improved documentation and example application

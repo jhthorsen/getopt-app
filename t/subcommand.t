@@ -4,11 +4,11 @@ use Test::More;
 use File::Spec::Functions qw(catfile rel2abs);
 use Getopt::App -capture;
 
-my $path = rel2abs(catfile qw(example bin cool));
-plan skip_all => "$path" unless -x $path;
+my $script = rel2abs(catfile qw(example bin cool));
+plan skip_all => "$script" unless -x $script;
 
-local $0 = $path;
-my $app = do($path) or die $@;
+local $0 = $script;
+my $app = do($script) or die $@;
 
 subtest 'dispatch' => sub {
   my $res = capture($app, []);
