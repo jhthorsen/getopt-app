@@ -1,7 +1,8 @@
 Revision history for perl distribution Getopt-App
 
-0.02 Not Released
+0.02 2022-05-17T08:41:27+0900
  - Changed getopt_post_process_exit_value() to no longer take a ref
+ - Improved documentation and example application
 
 0.01 2022-04-24T17:21:25+0900
  - Can parse arguments and call the run() callback

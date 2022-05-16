@@ -99,15 +99,15 @@ hyphen, and `die` with an error message if so:
 
 ## getopt\_post\_process\_exit\_value
 
-    $app->getopt_post_process_exit_value($exit_value_ref);
+    $exit_value = $app->getopt_post_process_exit_value($exit_value);
 
-A hook to be run after the `/run` function has been called. `$exit_value_ref`
-is a scalar ref, holding the return value from ["run"](#run) which could be any
-value, not just 0-255. This value can then be changed to change the exit value
-from the program.
+A method to be called after the ["run"](#run) function has been called.
+`$exit_value` holds the return value from ["run"](#run) which could be any value,
+not just 0-255. This value can then be changed to change the exit value from
+the program.
 
     sub getopt_post_process_exit_value ($app, $exit_value) {
-      $$exit_value = int(1 + rand 10);
+      return int(1 + rand 10);
     }
 
 ## getopt\_pre\_process\_argv
@@ -118,7 +118,7 @@ This method can be defined to pre-process `$argv` before it is passed on to
 ["GetOptionsFromArray" in Getopt::Long](https://metacpan.org/pod/Getopt%3A%3ALong#GetOptionsFromArray). Example:
 
     sub getopt_pre_process_argv ($app, $argv) {
-      $app->{subcommand} = shift @$argv if @$argv and $argv->[0] =~ m!^[a-z]!;
+      $app->{first_non_option} = shift @$argv if @$argv and $argv->[0] =~ m!^[a-z]!;
     }
 
 This method can `die` and optionally set `$!` to avoid calling the actual
@@ -136,7 +136,7 @@ array-refs like this:
 
 The first element in each array-ref "subname" will be matched against the first
 argument passed to the script, and when matched the "sub-command-script" will
-be sourced and run inside the same Perl process. The sub command script must
+be sourced and run inside the same perl process. The sub command script must
 also use [Getopt::App](https://metacpan.org/pod/Getopt%3A%3AApp) for this to work properly.
 
 See [https://github.com/jhthorsen/getopt-app/tree/main/example](https://github.com/jhthorsen/getopt-app/tree/main/example) for a working
@@ -157,12 +157,14 @@ be set to `$!`.
 
 ## extract\_usage
 
+    # Default to "SYNOPSIS" from current file
     my $str = extract_usage($section, $file);
-    my $str = extract_usage(); # Default to "SYNOPSIS" from current file
+    my $str = extract_usage($section);
+    my $str = extract_usage();
 
-Will extract a `$section` from POD `$file` and append command line options
-when called from inside of ["run"](#run). Command line options can optionally have a
-description with "spaces-hash-spaces-description", like this:
+Will extract a `$section` from POD `$file` and append command line option
+descriptions when called from inside of ["run"](#run). Command line options can
+optionally have a description with "spaces-hash-spaces-description", like this:
 
     run(
       'o|option  # Some description',
