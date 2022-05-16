@@ -103,34 +103,34 @@ sub run {
   @rules = map {s!$opt_comment_re.*$!!r} @rules;
 
   my $app = $class->new;
-  _hook($app, pre_process_argv => $argv);
+  _call($app, getopt_pre_process_argv => $argv);
 
-  local $SUBCOMMANDS = _hook($app, 'subcommands');
+  local $SUBCOMMANDS = _call($app, 'getopt_subcommands');
   my $exit_value = $SUBCOMMANDS ? _subcommand($app, $SUBCOMMANDS, $argv) : undef;
   return $exit_value if defined $exit_value;
 
-  my @configure = _hook($app, 'configure');
+  my @configure = _call($app, 'getopt_configure');
   my $prev      = Getopt::Long::Configure(@configure);
   my $valid     = Getopt::Long::GetOptionsFromArray($argv, $app, @rules) ? 1 : 0;
   Getopt::Long::Configure($prev);
-  _hook($app, post_process_argv => $argv, {valid => $valid});
+  _call($app, getopt_post_process_argv => $argv, {valid => $valid});
 
   $exit_value = $valid ? $app->$cb(@$argv) : 1;
-  _hook($app, post_process_exit_value => \$exit_value);
+  _call($app, getopt_post_process_exit_value => \$exit_value);
   $exit_value = 0       unless looks_like_number $exit_value;
   exit(int $exit_value) unless $Getopt::App::APP_CLASS;
   return $exit_value;
 }
 
-sub _hook {
-  my ($app, $name) = (shift, shift);
-  my $hook = $app->can("getopt_$name") || __PACKAGE__->can("_hook_$name");
-  return $hook ? $app->$hook(@_) : undef;
+sub _call {
+  my ($app, $method) = (shift, shift);
+  my $cb = $app->can($method) || __PACKAGE__->can("_$method");
+  return $cb ? $app->$cb(@_) : undef;
 }
 
-sub _hook_configure {qw(bundling no_auto_abbrev no_ignore_case pass_through require_order)}
+sub _getopt_configure {qw(bundling no_auto_abbrev no_ignore_case pass_through require_order)}
 
-sub _hook_post_process_argv {
+sub _getopt_post_process_argv {
   my ($app, $argv, $state) = @_;
   return unless $state->{valid};
   return unless $argv->[0] and $argv->[0] =~ m!^-!;
@@ -293,10 +293,10 @@ hyphen, and C<die> with an error message if so:
 
   $app->getopt_post_process_exit_value($exit_value_ref);
 
-A hook to be run after the L</run> function has been called. C<$exit_value_ref>
-is a scalar ref, holding the return value from L</run> which could be any
-value, not just 0-255. This value can then be changed to change the exit value
-from the program.
+A method to be called after the L</run> function has been called.
+C<$exit_value_ref> is a scalar ref, holding the return value from L</run> which
+could be any value, not just 0-255. This value can then be changed to change
+the exit value from the program.
 
   sub getopt_post_process_exit_value ($app, $exit_value) {
     $$exit_value = int(1 + rand 10);

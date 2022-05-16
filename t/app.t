@@ -41,15 +41,15 @@ subtest post_process_argv => sub {
   is_deeply [@main::POST_PROGRESS], [[], {valid => 0}], 'invalid args';
 };
 
-subtest hooks => sub {
-  my $hooks_app = hooks_app();
-  is $hooks_app->([qw(-x 40)]),      42, 'default exit value';
-  is $hooks_app->([qw(four -x 40)]), 4,  'four exit value';
+subtest methods => sub {
+  my $methods_app = methods_app();
+  is $methods_app->([qw(-x 40)]),      42, 'default exit value';
+  is $methods_app->([qw(four -x 40)]), 4,  'four exit value';
 };
 
 done_testing;
 
-sub hooks_app {
+sub methods_app {
   eval <<'HERE' or die $@;
     package My::Hooks;
     use Getopt::App;
