@@ -224,6 +224,22 @@ In the example above, `@extra` gets populated, since there is a non-flag value
 
 # METHODS
 
+## bundle
+
+    Getopt::App->bundle($path_to_script);
+    Getopt::App->bundle($path_to_script, $fh);
+
+This method can be used to combine [Getopt::App](https://metacpan.org/pod/Getopt%3A%3AApp) and `$path_to_script` into a
+a single script that does not need to have [Getopt::App](https://metacpan.org/pod/Getopt%3A%3AApp) installed from CPAN.
+This is for example useful for sysadmin scripts that otherwize only depends on
+core Perl modules.
+
+The script will be printed to `$fh`, which defaults to `STDOUT`.
+
+Example usage:
+
+    perl -MGetopt::App -e'Getopt::App->bundle(shift)' ./src/my-script.pl > ./bin/my-script;
+
 ## import
 
     use Getopt::App;

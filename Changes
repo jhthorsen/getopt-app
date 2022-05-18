@@ -1,6 +1,6 @@
 Revision history for perl distribution Getopt-App
 
-0.03 Not Released
+0.03 2022-05-18T14:34:37+0900
  - Add bundle() for creating scripts that bundles Getopt::App
 
 0.02 2022-05-17T08:41:27+0900
