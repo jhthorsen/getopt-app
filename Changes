@@ -1,5 +1,8 @@
 Revision history for perl distribution Getopt-App
 
+0.04 Not Released
+ - Add support for getopt_unknown_subcommand()
+
 0.03 2022-05-18T14:34:37+0900
  - Add bundle() for creating scripts that bundles Getopt::App
 

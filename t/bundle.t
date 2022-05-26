@@ -18,6 +18,7 @@ my @expect_bundled = (
   qr/sub _call \{.*\}/,
   qr/sub _getopt_configure \{.*\}/,
   qr/sub _getopt_post_process_argv \{.*\}/,
+  qr/sub _getopt_unknown_subcommand \{.*\}/,
   qr/sub _subcommand \{.*\}/,
   qr/sub _usage_for_options \{.*\}/,
   qr/sub _usage_for_subcommands \{.*\}/,

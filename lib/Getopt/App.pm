@@ -185,11 +185,16 @@ sub _getopt_post_process_argv {
   die "Invalid argument or argument order: @$argv\n";
 }
 
+sub _getopt_unknown_subcommand {
+  my ($self, $argv) = @_;
+  die "Unknown subcommand: $argv->[0]\n";
+}
+
 sub _subcommand {
   my ($app, $subcommands, $argv) = @_;
-  return undef unless $argv->[0] and $argv->[0] =~ m!^[a-z]!;
+  return undef unless $argv->[0] and $argv->[0] =~ m!^\w!;
 
-  die "Unknown subcommand: $argv->[0]\n"
+  return _call($app, getopt_unknown_subcommand => $argv)
     unless my $subcommand = first { $_->[0] eq $argv->[0] } @$subcommands;
 
   local $Getopt::App::APP_CLASS;
@@ -386,6 +391,18 @@ also use L<Getopt::App> for this to work properly.
 
 See L<https://github.com/jhthorsen/getopt-app/tree/main/example> for a working
 example.
+
+=head2 getopt_unknown_subcommand
+
+  $exit_value = $app->getopt_unknown_subcommand($argv);
+
+Will be called when L</getopt_subcommands> is defined but C<$argv> does not
+match an item in the list. Default behavior is to C<die> with an error message:
+
+  Unknown subcommand: $argv->[0]\n
+
+Returning C<undef> instead of dieing or a number (0-255) will cause the C</run>
+callback to be called.
 
 =head1 EXPORTED FUNCTIONS
 
