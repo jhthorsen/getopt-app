@@ -313,6 +313,10 @@ L<Getopt::Long> with a very simple API. In addition it makes it very easy to
 test your script, since the script file can be sourced without actually being
 run.
 
+L<Getopt::App> also supports infinite nested L<subcommands|/getopt_subcommands>
+and a method for L<bundling|/bundle> this module with your script to prevent
+depending on a module from CPAN.
+
 This module is currently EXPERIMENTAL, but is unlikely to change much.
 
 =head1 APPLICATION METHODS
