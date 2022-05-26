@@ -1,6 +1,6 @@
 Revision history for perl distribution Getopt-App
 
-0.04 Not Released
+0.04 2022-05-26T16:45:01+0900
  - Add support for getopt_load_subcommand()
  - Add support for getopt_unknown_subcommand()
 

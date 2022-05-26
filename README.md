@@ -63,6 +63,10 @@ The example script above can be run like any other script:
 test your script, since the script file can be sourced without actually being
 run.
 
+[Getopt::App](https://metacpan.org/pod/Getopt%3A%3AApp) also supports infinite nested [subcommands](#getopt_subcommands)
+and a method for [bundling](#bundle) this module with your script to prevent
+depending on a module from CPAN.
+
 This module is currently EXPERIMENTAL, but is unlikely to change much.
 
 # APPLICATION METHODS
@@ -80,6 +84,16 @@ differently. The default return value is:
     qw(bundling no_auto_abbrev no_ignore_case pass_through require_order)
 
 The default return value is currently EXPERIMENTAL.
+
+## getopt\_load\_subcommand
+
+    $code = $app->getopt_subcommand($subcommand, [@ARGV]);
+
+Takes the subcommand found in the ["getopt\_subcommands"](#getopt_subcommands) list and the command
+line arguments and must return a CODE block. The default implementation is
+simply:
+
+    $code = do($subcommand->[1]);
 
 ## getopt\_post\_process\_argv
 
@@ -141,6 +155,18 @@ also use [Getopt::App](https://metacpan.org/pod/Getopt%3A%3AApp) for this to wor
 
 See [https://github.com/jhthorsen/getopt-app/tree/main/example](https://github.com/jhthorsen/getopt-app/tree/main/example) for a working
 example.
+
+## getopt\_unknown\_subcommand
+
+    $exit_value = $app->getopt_unknown_subcommand($argv);
+
+Will be called when ["getopt\_subcommands"](#getopt_subcommands) is defined but `$argv` does not
+match an item in the list. Default behavior is to `die` with an error message:
+
+    Unknown subcommand: $argv->[0]\n
+
+Returning `undef` instead of dieing or a number (0-255) will cause the ["run"](#run)
+callback to be called.
 
 # EXPORTED FUNCTIONS
 
