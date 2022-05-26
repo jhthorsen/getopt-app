@@ -29,6 +29,10 @@ subtest 'dispatch' => sub {
   $res = capture($app, [qw(coffee b 42)]);
   is $res->[2], 12, 'invalid exit';
   like $res->[0], qr{\bcoffee\.pl/b/42$}, 'coffee stdout' or diag "ERROR: $res->[1]";
+
+  $res = capture($app, [qw(help)]);
+  like $res->[0],   qr{Usage:},       'help stdout'    or diag "ERROR: $res->[1]";
+  unlike $res->[0], qr{Subcommands:}, 'no subcommands' or diag "ERROR: $res->[1]";
 };
 
 subtest 'help' => sub {
@@ -37,6 +41,7 @@ subtest 'help' => sub {
 Subcommands:
   beans    Try beans.pl
   coffee   Try coffee.pl
+  help     Try help.pl
   invalid  Try invalid.pl
 
 Options:
