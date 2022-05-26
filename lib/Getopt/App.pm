@@ -177,6 +177,14 @@ sub _call {
 
 sub _getopt_configure {qw(bundling no_auto_abbrev no_ignore_case pass_through require_order)}
 
+sub _getopt_load_subcommand {
+  my ($self, $subcommand, $argv) = @_;
+  ($@, $!) = ('', 0);
+  my $code = do $subcommand->[1];
+  croak "Unable to load subcommand $subcommand->[0]: $@ ($!)" if $@ or $!;
+  return $code;
+}
+
 sub _getopt_post_process_argv {
   my ($app, $argv, $state) = @_;
   return unless $state->{valid};
@@ -199,12 +207,9 @@ sub _subcommand {
 
   local $Getopt::App::APP_CLASS;
   local $0 = $subcommand->[1];
-  ($@, $!) = ('', 0);
   unless ($APPS{$subcommand->[1]}) {
-    $APPS{$subcommand->[1]} = do $subcommand->[1];
-    croak "Unable to load subcommand $argv->[0]: $@ ($!)" if $@ or $!;
-    croak "Does not seem like $subcommand->[0] return Getopt::App::run()"
-      unless ref $APPS{$subcommand->[1]} eq 'CODE';
+    $APPS{$subcommand->[1]} = _call($app, getopt_load_subcommand => $subcommand, $argv);
+    croak "Can't load code ref from $subcommand->[0]" unless ref $APPS{$subcommand->[1]} eq 'CODE';
   }
 
   return $APPS{$subcommand->[1]}->([@$argv[1 .. $#$argv]]);
@@ -335,6 +340,16 @@ differently. The default return value is:
 
 The default return value is currently EXPERIMENTAL.
 
+=head2 getopt_load_subcommand
+
+  $code = $app->getopt_subcommand($subcommand, [@ARGV]);
+
+Takes the subcommand found in the L</getopt_subcommands> list and the command
+line arguments and must return a CODE block. The default implementation is
+simply:
+
+    $code = do($subcommand->[1]);
+
 =head2 getopt_post_process_argv
 
   $bool = $app->getopt_post_process_argv([@ARGV], {%state});
@@ -405,7 +420,7 @@ match an item in the list. Default behavior is to C<die> with an error message:
 
   Unknown subcommand: $argv->[0]\n
 
-Returning C<undef> instead of dieing or a number (0-255) will cause the C</run>
+Returning C<undef> instead of dieing or a number (0-255) will cause the L</run>
 callback to be called.
 
 =head1 EXPORTED FUNCTIONS
