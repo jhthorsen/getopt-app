@@ -10,7 +10,7 @@ use List::Util qw(first);
 
 our $VERSION = '0.03';
 
-our ($OPT_COMMENT_RE, $OPTIONS, $SUBCOMMANDS) = (qr{\s+\#\s+});
+our ($OPT_COMMENT_RE, $OPTIONS, $SUBCOMMANDS, %APPS) = (qr{\s+\#\s+});
 
 sub bundle {
   my ($class, $script, $OUT) = (@_, \*STDOUT);
@@ -193,10 +193,16 @@ sub _subcommand {
     unless my $subcommand = first { $_->[0] eq $argv->[0] } @$subcommands;
 
   local $Getopt::App::APP_CLASS;
-  local $@;
-  my $subapp = do($subcommand->[1]);
-  croak "Unable to load subcommand $argv->[0]: $@" if $@;
-  return $subapp->([@$argv[1 .. $#$argv]]);
+  local $0 = $subcommand->[1];
+  ($@, $!) = ('', 0);
+  unless ($APPS{$subcommand->[1]}) {
+    $APPS{$subcommand->[1]} = do $subcommand->[1];
+    croak "Unable to load subcommand $argv->[0]: $@ ($!)" if $@ or $!;
+    croak "Does not seem like $subcommand->[0] return Getopt::App::run()"
+      unless ref $APPS{$subcommand->[1]} eq 'CODE';
+  }
+
+  return $APPS{$subcommand->[1]}->([@$argv[1 .. $#$argv]]);
 }
 
 sub _usage_for_options {
