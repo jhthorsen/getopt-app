@@ -67,8 +67,6 @@ run.
 and a method for [bundling](#bundle) this module with your script to prevent
 depending on a module from CPAN.
 
-This module is currently EXPERIMENTAL, but is unlikely to change much.
-
 # APPLICATION METHODS
 
 These methods are optional, but can be defined in your script to override the
