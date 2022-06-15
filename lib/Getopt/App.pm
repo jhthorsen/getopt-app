@@ -349,7 +349,7 @@ This method will be called instead of the L</run> callback when the
 C<COMP_LINE> and C<COMP_POINT> environment variables are set. The default
 implementation will call L<Getopt::App::Complete/complete_reply>.
 
-See also L</Complete>.
+See also "Completion" under L</import>.
 
 =head2 getopt_configure
 
@@ -364,7 +364,7 @@ The default return value is currently EXPERIMENTAL.
 
 =head2 getopt_load_subcommand
 
-  $code = $app->getopt_subcommand($subcommand, [@ARGV]);
+  $code = $app->getopt_load_subcommand($subcommand, [@ARGV]);
 
 Takes the subcommand found in the L</getopt_subcommands> list and the command
 line arguments and must return a CODE block. The default implementation is
@@ -569,7 +569,7 @@ it will also import the following:
   use Getopt::App -complete;
 
 Same as L</Default>, but will also load L<Getopt::App::Complete> and import
-L<Getopt::App::Complete/generate_completion_script>.
+L<generate_completion_script()|Getopt::App::Complete/generate_completion_script>.
 
 =item * Signatures
 

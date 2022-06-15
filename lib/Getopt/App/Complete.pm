@@ -82,11 +82,11 @@ Getopt::App::Complete - Add autocompletion to you Getopt::App script
   use Getopt::App -complete;
 
   run(
-    'h                      # Print help',
-    'bash-completion-script # Print autocomplete script',
+    'h                 # Print help',
+    'completion-script # Print autocomplete script',
     sub {
       my ($app, @args) = @_;
-      return print generate_completion_script() if $app->{'bash-completion-script'};
+      return print generate_completion_script() if $app->{'completion-script'};
       return print extract_usage()              if $app->{h};
     },
   );
