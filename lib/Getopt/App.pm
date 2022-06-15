@@ -10,7 +10,7 @@ use List::Util qw(first);
 
 our $VERSION = '0.06';
 
-our ($OPT_COMMENT_RE, $OPTIONS, $SUBCOMMANDS, %APPS) = (qr{\s+\#\s+});
+our ($COMPLETE_ENABLED, $OPT_COMMENT_RE, $OPTIONS, $SUBCOMMANDS, %APPS) = (0, qr{\s+\#\s+});
 
 sub bundle {
   my ($class, $script, $OUT) = (@_, \*STDOUT);
@@ -114,6 +114,12 @@ sub import {
       *{"$caller\::capture"} = \&capture;
       $skip_default = 1;
     }
+    elsif ($flag eq '-complete') {
+      $COMPLETE_ENABLED = 1;
+      require Getopt::App::Complete;
+      *{"$caller\::generate_completion_script"}
+        = \&Getopt::App::Complete::generate_completion_script;
+    }
     elsif ($flag eq '-signatures') {
       require experimental;
       experimental->import(qw(signatures));
@@ -147,6 +153,7 @@ sub run {
   my $argv = ref $rules[0] eq 'ARRAY' ? shift @rules : [@ARGV];
   local $OPTIONS = [@rules];
   @rules = map {s!$OPT_COMMENT_RE.*$!!r} @rules;
+  return if $COMPLETE_ENABLED and defined(Getopt::App::Complete::complete_reply($class));
 
   my $app = $class->new;
   _call($app, getopt_pre_process_argv => $argv);
@@ -262,7 +269,7 @@ Getopt::App - Write and test your script with ease
 
   #!/usr/bin/env perl
   package My::Script;
-  use Getopt::App -signatures;
+  use Getopt::App -complete, -signatures;
 
   # See "APPLICATION METHODS"
   sub getopt_post_process_argv ($app, $argv, $state) { ... }
@@ -272,15 +279,17 @@ Getopt::App - Write and test your script with ease
   run(
 
     # Specify your Getopt::Long options and optionally a help text
-    'h|help # Output help',
-    'v+     # Verbose output',
-    'name=s # Specify a name',
+    'h|help            # Output help',
+    'v+                # Verbose output',
+    'name=s            # Specify a name',
+    'completion-script # Print autocomplete script',
 
     # Here is the main sub that will run the script
     sub ($app, @extra) {
-      return print extract_usage() if $app->{h};
-      say $app->{name} // 'no name'; # access command line options
-      return 42; # Reture value is used as exit code
+      return print generate_completion_script() if $app->{'completion-script'};
+      return print extract_usage()              if $app->{h};
+      say $app->{name} // 'no name';            # Access command line options
+      return 42;                                # Reture value is used as exit code
     }
   );
 
@@ -538,6 +547,16 @@ it will also import the following:
   use warnings;
   use utf8;
   use feature ':5.16';
+
+=item * Completion
+
+  use Getopt::App -complete;
+
+Same as L</Default>, but will also import
+L<Getopt::App::Complete/generate_completion_script> and make your script
+autocomplete aware.
+
+See L<Getopt::App::Complete> for more details.
 
 =item * Signatures
 
