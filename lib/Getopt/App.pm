@@ -12,6 +12,12 @@ our $VERSION = '0.07';
 
 our ($COMPLETE_ENABLED, $OPT_COMMENT_RE, $OPTIONS, $SUBCOMMANDS, %APPS) = (0, qr{\s+\#\s+});
 
+our $call_maybe = sub {
+  my ($app, $m) = (shift, shift);
+  $m = $app->can($m) || __PACKAGE__->can("_$m");
+  return $m ? $app->$m(@_) : undef;
+};
+
 sub bundle {
   my ($class, $script, $OUT) = (@_, \*STDOUT);
   my ($package, @script);
@@ -156,30 +162,24 @@ sub run {
   return if $COMPLETE_ENABLED and defined(Getopt::App::Complete::complete_reply($class));
 
   my $app = $class->new;
-  _call($app, getopt_pre_process_argv => $argv);
+  $app->$call_maybe(getopt_pre_process_argv => $argv);
 
-  local $SUBCOMMANDS = _call($app, 'getopt_subcommands');
+  local $SUBCOMMANDS = $app->$call_maybe('getopt_subcommands');
   my $exit_value = $SUBCOMMANDS ? _subcommand($app, $SUBCOMMANDS, $argv) : undef;
   return $exit_value if defined $exit_value;
 
-  my @configure = _call($app, 'getopt_configure');
+  my @configure = $app->$call_maybe('getopt_configure');
   my $prev      = Getopt::Long::Configure(@configure);
   my $valid     = Getopt::Long::GetOptionsFromArray($argv, $app, @rules) ? 1 : 0;
   Getopt::Long::Configure($prev);
-  _call($app, getopt_post_process_argv => $argv, {valid => $valid});
+  $app->$call_maybe(getopt_post_process_argv => $argv, {valid => $valid});
 
   $exit_value = $valid ? $app->$cb(@$argv) : 1;
-  $exit_value = _call($app, getopt_post_process_exit_value => $exit_value) // $exit_value;
+  $exit_value = $app->$call_maybe(getopt_post_process_exit_value => $exit_value) // $exit_value;
   $exit_value = 0   unless $exit_value and $exit_value =~ m!^\d{1,3}$!;
   $exit_value = 255 unless $exit_value < 255;
   exit(int $exit_value) unless $Getopt::App::APP_CLASS;
   return $exit_value;
-}
-
-sub _call {
-  my ($app, $method) = (shift, shift);
-  my $cb = $app->can($method) || __PACKAGE__->can("_$method");
-  return $cb ? $app->$cb(@_) : undef;
 }
 
 sub _getopt_configure {qw(bundling no_auto_abbrev no_ignore_case pass_through require_order)}
@@ -208,13 +208,13 @@ sub _subcommand {
   my ($app, $subcommands, $argv) = @_;
   return undef unless $argv->[0] and $argv->[0] =~ m!^\w!;
 
-  return _call($app, getopt_unknown_subcommand => $argv)
+  return $app->$call_maybe(getopt_unknown_subcommand => $argv)
     unless my $subcommand = first { $_->[0] eq $argv->[0] } @$subcommands;
 
   local $Getopt::App::APP_CLASS;
   local $0 = $subcommand->[1];
   unless ($APPS{$subcommand->[1]}) {
-    $APPS{$subcommand->[1]} = _call($app, getopt_load_subcommand => $subcommand, $argv);
+    $APPS{$subcommand->[1]} = $app->$call_maybe(getopt_load_subcommand => $subcommand, $argv);
     croak "$subcommand->[0] did not return a code ref" unless ref $APPS{$subcommand->[1]} eq 'CODE';
   }
 

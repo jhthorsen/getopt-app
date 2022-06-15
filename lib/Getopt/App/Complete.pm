@@ -9,12 +9,15 @@ use Exporter qw(import);
 
 our @EXPORT_OK = qw(complete_reply generate_completion_script);
 
+require Getopt::App;
+our $call_maybe = do { no warnings qw(once); $Getopt::App::call_maybe };
+
 sub complete_reply {
   return undef unless defined $ENV{COMP_POINT};
 
   my $app_class   = shift;
   my $app         = $app_class->new;
-  my $subcommands = $app->can('getopt_subcommands') ? $app->getopt_subcommands : [];
+  my $subcommands = $app->$call_maybe('getopt_subcommands') || [];
   my ($script, @argv) = split /\s+/, $ENV{COMP_LINE};
 
   # Recurse into subcommand
@@ -22,7 +25,7 @@ sub complete_reply {
     for my $subcommand (@$subcommands) {
       next unless $argv[0] eq $subcommand->[0];
       my $name   = $argv[0];
-      my $subapp = Getopt::App::_call($app, getopt_load_subcommand => $subcommand, \@argv);
+      my $subapp = $app->$call_maybe(getopt_load_subcommand => $subcommand, \@argv);
       local $ENV{COMP_LINE}  = $ENV{COMP_LINE} =~ s!(\s+$name\s+)! !r;
       local $ENV{COMP_POINT} = $1 ? ($ENV{COMP_POINT} + 1 - length $1) : length $ENV{COMP_LINE};
       $subapp->([]);
