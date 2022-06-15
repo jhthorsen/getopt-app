@@ -11,33 +11,26 @@ our @EXPORT_OK = qw(complete_reply generate_completion_script);
 
 require Getopt::App;
 our $call_maybe = do { no warnings qw(once); $Getopt::App::call_maybe };
+our $argv_index = 0;
 
 sub complete_reply {
-  return undef unless defined $ENV{COMP_POINT};
-
-  my $app_class   = shift;
-  my $app         = $app_class->new;
+  my $app         = shift;
   my $subcommands = $app->$call_maybe('getopt_subcommands') || [];
   my ($script, @argv) = split /\s+/, $ENV{COMP_LINE};
 
   # Recurse into subcommand
-  if (@argv and $argv[0] =~ m!^\w! and @$subcommands) {
+  if ($argv[$argv_index] and $argv[$argv_index] =~ m!^\w! and @$subcommands) {
     for my $subcommand (@$subcommands) {
-      next unless $argv[0] eq $subcommand->[0];
-      my $name   = $argv[0];
-      my $subapp = $app->$call_maybe(getopt_load_subcommand => $subcommand, \@argv);
-      local $ENV{COMP_LINE}  = $ENV{COMP_LINE} =~ s!(\s+$name\s+)! !r;
-      local $ENV{COMP_POINT} = $1 ? ($ENV{COMP_POINT} + 1 - length $1) : length $ENV{COMP_LINE};
-      $subapp->([]);
-      return 0;
+      next unless $argv[$argv_index] eq $subcommand->[0];
+      local $argv_index = $argv_index + 1;
+      return Getopt::App::_subcommand_run($app, $subcommand, [@argv[$argv_index - 1, $#argv]]);
     }
   }
 
   # List matching subcommands
   my $got = substr($ENV{COMP_LINE}, 0, $ENV{COMP_POINT}) =~ m!(\S+)$! ? $1 : '';
   for my $subcommand (@$subcommands) {
-    next unless index($subcommand->[0], $got) == 0;
-    say $subcommand->[0];
+    say $subcommand->[0] if index($subcommand->[0], $got) == 0;
   }
 
   # List matching command line options
@@ -87,6 +80,7 @@ Getopt::App::Complete - Add autocompletion to you Getopt::App script
 =head1 SYNOPSIS
 
   use Getopt::App -complete;
+
   run(
     'h                      # Print help',
     'bash-completion-script # Print autocomplete script',
@@ -108,14 +102,13 @@ This module is currently EXPERIMENTAL.
 
 =head2 complete_reply
 
-  $int = complete_reply($app_class);
+  $int = complete_reply($app_obj);
 
-This function is automatically called by L<Getopt::App/run> when loaded with
-the C<-complete> flag. Returns C<0> if the C<COMP_POINT> environment variable
-is set and C<undef> if not.
+This function is the default behaviour when L<Getopt::App/run> is called with
+C<COMP_POINT> and C<COMP_LINE> set.
 
 This function will print completion options based on C<COMP_POINT> and
-C<COMP_LINE> to STDOUT, and is aware of subcommands.
+C<COMP_LINE> to STDOUT and is aware of subcommands.
 
 =head2 generate_completion_script
 
