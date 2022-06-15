@@ -10,14 +10,14 @@ plan skip_all => "$script" unless -x $script;
 
 subtest 'generate_completion_script - bash' => sub {
   local $ENV{SHELL} = '/usr/bin/bash';
-  like generate_completion_script(), qr{^complete -C .* complete.t;}s, 'complete';
+  like generate_completion_script(), qr{^complete -o default -C .* complete.t;}s, 'complete';
 };
 
 subtest 'generate_completion_script - zsh' => sub {
   local $ENV{SHELL} = '/bin/zsh';
-  like generate_completion_script(), qr{autoload -U.*compinit}s,      'compinit';
-  like generate_completion_script(), qr{autoload -U.*bashcompinit}s,  'bashcompinit';
-  like generate_completion_script(), qr{complete -C .* complete.t;}m, 'complete';
+  like generate_completion_script(), qr{^_complete_t\(\)}s,                     'complete function';
+  like generate_completion_script(), qr{COMP_LINE=.*COMP_POINT=.*COMP_SHELL=}s, 'environment';
+  like generate_completion_script(), qr{compctl -f -K _complete_t complete\.t;}s, 'complete';
 };
 
 subtest 'complete_reply - disabled' => sub {

@@ -55,15 +55,22 @@ sub generate_completion_script {
   my $script_path = abs_path($0);
   my $script_name = basename($0);
   my $shell       = ($ENV{SHELL} || 'bash') =~ m!\bzsh\b! ? 'zsh' : 'bash';
-  my $code        = '';
 
   if ($shell eq 'zsh') {
-    $code .= "autoload -U +X compinit && compinit;\n";
-    $code .= "autoload -U +X bashcompinit && bashcompinit;\n";
-  }
+    my $function = '_' . $script_name =~ s!\W!_!gr;
+    return <<"HERE";
+$function() {
+  read -l; local l="\$REPLY";
+  read -ln; local p="\$REPLY";
+  reply=(\$(COMP_LINE="\$l" COMP_POINT="\$p" COMP_SHELL="zsh" $script_path));
+};
 
-  $code .= "complete -C $script_path -o default $script_name;\n";
-  return $code;
+compctl -f -K $function $script_name;
+HERE
+  }
+  else {
+    return "complete -o default -C $script_path $script_name;\n";
+  }
 }
 
 1;
