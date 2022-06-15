@@ -74,6 +74,16 @@ depending on a module from CPAN.
 These methods are optional, but can be defined in your script to override the
 default behavior.
 
+## getopt\_complete\_reply
+
+    $app->getopt_complete_reply;
+
+This method will be called instead of the ["run"](#run) callback when the
+`COMP_LINE` and `COMP_POINT` environment variables are set. The default
+implementation will call ["complete\_reply" in Getopt::App::Complete](https://metacpan.org/pod/Getopt%3A%3AApp%3A%3AComplete#complete_reply).
+
+See also ["Complete"](#complete).
+
 ## getopt\_configure
 
     @configure = $app->getopt_configure;
@@ -289,11 +299,8 @@ Example usage:
 
         use Getopt::App -complete;
 
-    Same as ["Default"](#default), but will also import
-    ["generate\_completion\_script" in Getopt::App::Complete](https://metacpan.org/pod/Getopt%3A%3AApp%3A%3AComplete#generate_completion_script) and make your script
-    autocomplete aware.
-
-    See [Getopt::App::Complete](https://metacpan.org/pod/Getopt%3A%3AApp%3A%3AComplete) for more details.
+    Same as ["Default"](#default), but will also load [Getopt::App::Complete](https://metacpan.org/pod/Getopt%3A%3AApp%3A%3AComplete) and import
+    ["generate\_completion\_script" in Getopt::App::Complete](https://metacpan.org/pod/Getopt%3A%3AApp%3A%3AComplete#generate_completion_script).
 
 - Signatures
 
