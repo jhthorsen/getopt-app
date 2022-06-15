@@ -8,7 +8,7 @@ use Carp qw(croak);
 use Getopt::Long ();
 use List::Util qw(first);
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 our ($COMPLETE_ENABLED, $OPT_COMMENT_RE, $OPTIONS, $SUBCOMMANDS, %APPS) = (0, qr{\s+\#\s+});
 

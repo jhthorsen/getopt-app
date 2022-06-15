@@ -8,7 +8,7 @@ Getopt::App - Write and test your script with ease
 
     #!/usr/bin/env perl
     package My::Script;
-    use Getopt::App -signatures;
+    use Getopt::App -complete, -signatures;
 
     # See "APPLICATION METHODS"
     sub getopt_post_process_argv ($app, $argv, $state) { ... }
@@ -18,15 +18,17 @@ Getopt::App - Write and test your script with ease
     run(
 
       # Specify your Getopt::Long options and optionally a help text
-      'h|help # Output help',
-      'v+     # Verbose output',
-      'name=s # Specify a name',
+      'h|help            # Output help',
+      'v+                # Verbose output',
+      'name=s            # Specify a name',
+      'completion-script # Print autocomplete script',
 
       # Here is the main sub that will run the script
       sub ($app, @extra) {
-        return print extract_usage() if $app->{h};
-        say $app->{name} // 'no name'; # access command line options
-        return 42; # Reture value is used as exit code
+        return print generate_completion_script() if $app->{'completion-script'};
+        return print extract_usage()              if $app->{h};
+        say $app->{name} // 'no name';            # Access command line options
+        return 42;                                # Reture value is used as exit code
       }
     );
 
@@ -282,6 +284,16 @@ Example usage:
         use warnings;
         use utf8;
         use feature ':5.16';
+
+- Completion
+
+        use Getopt::App -complete;
+
+    Same as ["Default"](#default), but will also import
+    ["generate\_completion\_script" in Getopt::App::Complete](https://metacpan.org/pod/Getopt%3A%3AApp%3A%3AComplete#generate_completion_script) and make your script
+    autocomplete aware.
+
+    See [Getopt::App::Complete](https://metacpan.org/pod/Getopt%3A%3AApp%3A%3AComplete) for more details.
 
 - Signatures
 
