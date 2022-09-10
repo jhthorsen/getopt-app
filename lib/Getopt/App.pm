@@ -442,7 +442,7 @@ match an item in the list. Default behavior is to C<die> with an error message:
 
   Unknown subcommand: $argv->[0]\n
 
-Returning C<undef> instead of dieing or a number (0-255) will cause the L</run>
+Returning C<undef> instead of dying or a number (0-255) will cause the L</run>
 callback to be called.
 
 =head1 EXPORTED FUNCTIONS
@@ -534,7 +534,7 @@ In the example above, C<@extra> gets populated, since there is a non-flag value
 
 This method can be used to combine L<Getopt::App> and C<$path_to_script> into a
 a single script that does not need to have L<Getopt::App> installed from CPAN.
-This is for example useful for sysadmin scripts that otherwize only depends on
+This is for example useful for sysadmin scripts that otherwise only depends on
 core Perl modules.
 
 The script will be printed to C<$fh>, which defaults to C<STDOUT>.

@@ -75,7 +75,7 @@ HERE
 
 =head1 NAME
 
-Getopt::App::Complete - Add autocompletion to you Getopt::App script
+Getopt::App::Complete - Add auto-completion to you Getopt::App script
 
 =head1 SYNOPSIS
 
@@ -93,7 +93,7 @@ Getopt::App::Complete - Add autocompletion to you Getopt::App script
 
 =head1 DESCRIPTION
 
-L<Getopt::App::Complete> contains helper functions for adding autocompletion to
+L<Getopt::App::Complete> contains helper functions for adding auto-completion to
 your L<Getopt::App> powered script.
 
 This module is currently EXPERIMENTAL.
