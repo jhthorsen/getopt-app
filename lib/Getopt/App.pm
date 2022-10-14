@@ -4,9 +4,9 @@ use strict;
 use warnings;
 use utf8;
 
-use Carp qw(croak);
+use Carp         qw(croak);
 use Getopt::Long ();
-use List::Util qw(first);
+use List::Util   qw(first);
 
 our $VERSION = '0.08';
 
@@ -99,11 +99,10 @@ sub extract_usage {
 
   $usage //= '';
   $usage =~ s!^(.*?)\n!!s if $pod2usage{'-sections'};
-  $usage =~ s!^Usage:\n\s+([A-Z])!$1!s;    # Remove "Usage" header if SYNOPSIS has a description
+  $usage =~ s!^Usage:\n\s+([A-Z])!$1!s;                 # Remove "Usage" header if SYNOPSIS has a description
   $usage =~ s!^    !!gm;
 
-  return join '', $usage, _usage_for_subcommands($SUBCOMMANDS || []),
-    _usage_for_options($OPTIONS || []);
+  return join '', $usage, _usage_for_subcommands($SUBCOMMANDS || []), _usage_for_options($OPTIONS || []);
 }
 
 sub import {
@@ -122,8 +121,7 @@ sub import {
     }
     elsif ($flag eq '-complete') {
       require Getopt::App::Complete;
-      *{"$caller\::generate_completion_script"}
-        = \&Getopt::App::Complete::generate_completion_script;
+      *{"$caller\::generate_completion_script"} = \&Getopt::App::Complete::generate_completion_script;
     }
     elsif ($flag eq '-signatures') {
       require experimental;
@@ -160,8 +158,7 @@ sub run {
   @rules = map {s!$OPT_COMMENT_RE.*$!!r} @rules;
 
   my $app = $class->new;
-  return $app->$call_maybe('getopt_complete_reply')
-    if defined $ENV{COMP_POINT} and defined $ENV{COMP_LINE};
+  return $app->$call_maybe('getopt_complete_reply') if defined $ENV{COMP_POINT} and defined $ENV{COMP_LINE};
 
   $app->$call_maybe(getopt_pre_process_argv => $argv);
 
@@ -210,7 +207,6 @@ sub _getopt_unknown_subcommand {
 sub _subcommand_run {
   my ($app, $subcommand, $argv) = @_;
   local $Getopt::App::APP_CLASS;
-  local $0 = $subcommand->[1];
   unless ($APPS{$subcommand->[1]}) {
     $APPS{$subcommand->[1]} = $app->$call_maybe(getopt_load_subcommand => $subcommand, $argv);
     croak "$subcommand->[0] did not return a code ref" unless ref $APPS{$subcommand->[1]} eq 'CODE';
@@ -235,8 +231,7 @@ sub _usage_for_options {
   for (@$rules) {
     my @o = split $OPT_COMMENT_RE, $_, 2;
     $o[0] =~ s/(=[si][@%]?|\!|\+)$//;
-    $o[0] = join ', ',
-      map { length($_) == 1 ? "-$_" : "--$_" } sort { length($b) <=> length($a) } split /\|/, $o[0];
+    $o[0] = join ', ', map { length($_) == 1 ? "-$_" : "--$_" } sort { length($b) <=> length($a) } split /\|/, $o[0];
     $o[1] //= '';
 
     my $l = length $o[0];
