@@ -22,7 +22,7 @@ subtest 'dispatch' => sub {
 
   $res = capture($app, [qw(beans a 24)]);
   is $res->[2], 11, 'invalid exit';
-  like $res->[0], qr{\bbeans\.pl/a/24$}, 'beans stdout' or diag "ERROR: $res->[1]";
+  like $res->[0], qr{^beans\|.*\bbeans\.pl\|.*\bbeans\.pl\|a\|24$}, 'beans stdout' or diag "ERROR: $res->[1]";
 
   $res = capture($app, [qw(coffee b 42)]);
   is $res->[2], 12, 'invalid exit';

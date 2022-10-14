@@ -2,6 +2,7 @@ Revision history for perl distribution Getopt-App
 
 0.09 Not Released
  - Fix not setting $0
+ - Add $Getopt::App::SUBCOMMAND
  - Specified Perl version
  - Updated basic repository files
 

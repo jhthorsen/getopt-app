@@ -10,7 +10,7 @@ use List::Util   qw(first);
 
 our $VERSION = '0.08';
 
-our ($OPT_COMMENT_RE, $OPTIONS, $SUBCOMMANDS, %APPS) = (qr{\s+\#\s+});
+our ($OPT_COMMENT_RE, $OPTIONS, $SUBCOMMAND, $SUBCOMMANDS, %APPS) = (qr{\s+\#\s+});
 
 our $call_maybe = sub {
   my ($app, $m) = (shift, shift);
@@ -207,6 +207,7 @@ sub _getopt_unknown_subcommand {
 sub _subcommand_run {
   my ($app, $subcommand, $argv) = @_;
   local $Getopt::App::APP_CLASS;
+  local $Getopt::App::SUBCOMMAND = $subcommand;
   unless ($APPS{$subcommand->[1]}) {
     $APPS{$subcommand->[1]} = $app->$call_maybe(getopt_load_subcommand => $subcommand, $argv);
     croak "$subcommand->[0] did not return a code ref" unless ref $APPS{$subcommand->[1]} eq 'CODE';
@@ -424,6 +425,9 @@ The first element in each array-ref "subname" will be matched against the first
 argument passed to the script, and when matched the "sub-command-script" will
 be sourced and run inside the same perl process. The sub command script must
 also use L<Getopt::App> for this to work properly.
+
+The sub-command will have C<$Getopt::App::SUBCOMMAND> set to the item found in
+the list.
 
 See L<https://github.com/jhthorsen/getopt-app/tree/main/example> for a working
 example.
