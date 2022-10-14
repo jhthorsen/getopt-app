@@ -1,6 +1,6 @@
 Revision history for perl distribution Getopt-App
 
-0.09 Not Released
+0.09 2022-10-14T12:03:24
  - Fix not setting $0
  - Add $Getopt::App::SUBCOMMAND
  - Improved documentation for subcommands

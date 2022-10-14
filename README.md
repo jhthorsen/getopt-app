@@ -58,6 +58,37 @@ The example script above can be run like any other script:
 
     done_testing;
 
+## Subcommands
+
+    #!/usr/bin/env perl
+    # Define a package to avoid mixing methods after loading the subcommand script
+    package My::App::main;
+    use Getopt::App -complete;
+
+    # getopt_subcommands() is called by Getopt::App
+    sub getopt_subcommands {
+      my $app = shift;
+
+      return [
+        ['find',   '/path/to/subcommand/find.pl',   'Find things'],
+        ['update', '/path/to/subcommand/update.pl', 'Update things'],
+      ];
+    }
+
+    # run() is only called if there are no matching sub commands
+    run(
+      'h                 # Print help',
+      'completion-script # Print autocomplete script',
+      sub {
+        my ($app, @args) = @_;
+        return print generate_completion_script() if $app->{'completion-script'};
+        return print extract_usage();
+      }
+    );
+
+See ["getopt\_subcommands"](#getopt_subcommands) and [https://github.com/jhthorsen/getopt-app/tree/main/example](https://github.com/jhthorsen/getopt-app/tree/main/example)
+for more details.
+
 # DESCRIPTION
 
 [Getopt::App](https://metacpan.org/pod/Getopt%3A%3AApp) is a module that helps you structure your scripts and integrates
@@ -82,7 +113,7 @@ This method will be called instead of the ["run"](#run) callback when the
 `COMP_LINE` and `COMP_POINT` environment variables are set. The default
 implementation will call ["complete\_reply" in Getopt::App::Complete](https://metacpan.org/pod/Getopt%3A%3AApp%3A%3AComplete#complete_reply).
 
-See also ["Complete"](#complete).
+See also "Completion" under ["import"](#import).
 
 ## getopt\_configure
 
@@ -97,7 +128,7 @@ The default return value is currently EXPERIMENTAL.
 
 ## getopt\_load\_subcommand
 
-    $code = $app->getopt_subcommand($subcommand, [@ARGV]);
+    $code = $app->getopt_load_subcommand($subcommand, [@ARGV]);
 
 Takes the subcommand found in the ["getopt\_subcommands"](#getopt_subcommands) list and the command
 line arguments and must return a CODE block. The default implementation is
@@ -163,6 +194,9 @@ argument passed to the script, and when matched the "sub-command-script" will
 be sourced and run inside the same perl process. The sub command script must
 also use [Getopt::App](https://metacpan.org/pod/Getopt%3A%3AApp) for this to work properly.
 
+The sub-command will have `$Getopt::App::SUBCOMMAND` set to the item found in
+the list.
+
 See [https://github.com/jhthorsen/getopt-app/tree/main/example](https://github.com/jhthorsen/getopt-app/tree/main/example) for a working
 example.
 
@@ -175,7 +209,7 @@ match an item in the list. Default behavior is to `die` with an error message:
 
     Unknown subcommand: $argv->[0]\n
 
-Returning `undef` instead of dieing or a number (0-255) will cause the ["run"](#run)
+Returning `undef` instead of dying or a number (0-255) will cause the ["run"](#run)
 callback to be called.
 
 # EXPORTED FUNCTIONS
@@ -267,7 +301,7 @@ In the example above, `@extra` gets populated, since there is a non-flag value
 
 This method can be used to combine [Getopt::App](https://metacpan.org/pod/Getopt%3A%3AApp) and `$path_to_script` into a
 a single script that does not need to have [Getopt::App](https://metacpan.org/pod/Getopt%3A%3AApp) installed from CPAN.
-This is for example useful for sysadmin scripts that otherwize only depends on
+This is for example useful for sysadmin scripts that otherwise only depends on
 core Perl modules.
 
 The script will be printed to `$fh`, which defaults to `STDOUT`.
@@ -300,7 +334,7 @@ Example usage:
         use Getopt::App -complete;
 
     Same as ["Default"](#default), but will also load [Getopt::App::Complete](https://metacpan.org/pod/Getopt%3A%3AApp%3A%3AComplete) and import
-    ["generate\_completion\_script" in Getopt::App::Complete](https://metacpan.org/pod/Getopt%3A%3AApp%3A%3AComplete#generate_completion_script).
+    [generate\_completion\_script()](https://metacpan.org/pod/Getopt%3A%3AApp%3A%3AComplete#generate_completion_script).
 
 - Signatures
 
