@@ -321,6 +321,37 @@ The example script above can be run like any other script:
 
   done_testing;
 
+=head2 Subcommands
+
+  #!/usr/bin/env perl
+  # Define a package to avoid mixing methods after loading the subcommand script
+  package My::App::main;
+  use Getopt::App -complete;
+
+  # getopt_subcommands() is called by Getopt::App
+  sub getopt_subcommands {
+    my $app = shift;
+
+    return [
+      ['find',   '/path/to/subcommand/find.pl',   'Find things'],
+      ['update', '/path/to/subcommand/update.pl', 'Update things'],
+    ];
+  }
+
+  # run() is only called if there are no matching sub commands
+  run(
+    'h                 # Print help',
+    'completion-script # Print autocomplete script',
+    sub {
+      my ($app, @args) = @_;
+      return print generate_completion_script() if $app->{'completion-script'};
+      return print extract_usage();
+    }
+  );
+
+See L</getopt_subcommands> and L<https://github.com/jhthorsen/getopt-app/tree/main/example>
+for more details.
+
 =head1 DESCRIPTION
 
 L<Getopt::App> is a module that helps you structure your scripts and integrates
