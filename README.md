@@ -225,6 +225,14 @@ order in `$array_ref`. This function will also capture `die`. `$@` will be
 set and captured in the second `$array_ref` element, and `$exit_value` will
 be set to `$!`.
 
+This function is a very slimmed down alternative to ["capture" in Capture::Tiny](https://metacpan.org/pod/Capture%3A%3ATiny#capture).
+The main reason why ["capture"](#capture) exists in this package is that if something
+inside the `$app` throws an exception, then it will be part of the captured
+`$stderr` instead of making `capture()` throw an exception.
+
+["capture" in Capture::Tiny](https://metacpan.org/pod/Capture%3A%3ATiny#capture) is however more robust than this function, so please
+try [Capture::Tiny](https://metacpan.org/pod/Capture%3A%3ATiny) out in case you find an edge case.
+
 ## extract\_usage
 
     # Default to "SYNOPSIS" from current file
