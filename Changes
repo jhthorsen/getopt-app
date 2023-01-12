@@ -1,5 +1,8 @@
 Revision history for perl distribution Getopt-App
 
+0.12 Not Released
+ - Made capture() more robust
+
 0.11 2023-01-04T08:53:13
  - Fix returning correct exit value from subcommands
 
