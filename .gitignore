@@ -1,4 +1,5 @@
 ~$
+.pls_cache
 *.bak
 *.o
 *.old
