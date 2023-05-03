@@ -406,7 +406,9 @@ differently. The default return value is:
 
   qw(bundling no_auto_abbrev no_ignore_case pass_through require_order)
 
-The default return value is currently EXPERIMENTAL.
+Note that the default "pass_through" item is to enable the default
+L</getopt_post_process_argv> to croak on invalid arguments, since
+L<Getopt::Long> will by default just warn to STDERR about unknown arguments.
 
 =head2 getopt_load_subcommand
 
