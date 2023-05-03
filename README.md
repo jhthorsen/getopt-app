@@ -124,7 +124,9 @@ differently. The default return value is:
 
     qw(bundling no_auto_abbrev no_ignore_case pass_through require_order)
 
-The default return value is currently EXPERIMENTAL.
+Note that the default "pass\_through" item is to enable the default
+["getopt\_post\_process\_argv"](#getopt_post_process_argv) to croak on invalid arguments, since
+[Getopt::Long](https://metacpan.org/pod/Getopt%3A%3ALong) will by default just warn to STDERR about unknown arguments.
 
 ## getopt\_load\_subcommand
 
@@ -196,6 +198,11 @@ also use [Getopt::App](https://metacpan.org/pod/Getopt%3A%3AApp) for this to wor
 
 The sub-command will have `$Getopt::App::SUBCOMMAND` set to the item found in
 the list.
+
+Instead of specifying a path, it is also possible to specify a method name, in
+case you want to include the sub commands inside the current script. Example:
+
+    [["foo", "command_foo", "help text"], ...]
 
 See [https://github.com/jhthorsen/getopt-app/tree/main/example](https://github.com/jhthorsen/getopt-app/tree/main/example) for a working
 example.
