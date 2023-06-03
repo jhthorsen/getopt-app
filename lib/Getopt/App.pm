@@ -574,9 +574,9 @@ exists in the script.
   my $cb = run(@rules, sub ($app, @extra) { ... });
   my $exit_value = $cb->([@ARGV]);
 
-L</run> can be used to call a callback when valid command line options is
-provided. On invalid arguments, warnings will be issued and the program exit
-with C<$?> set to 1.
+L</run> can be used to call a callback when valid command line options are
+provided. On invalid arguments, warnings will be issued and the program will
+exit with C<$?> set to 1.
 
 C<$app> inside the callback is a hash blessed to the caller package. The keys
 in the hash are the parsed command line options, while C<@extra> is the extra
