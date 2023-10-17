@@ -16,9 +16,9 @@ our ($DEPTH, $OPT_COMMENT_RE, $OPTIONS, $SUBCOMMAND, $SUBCOMMANDS, %APPS) = (-1,
 
 our $call_maybe = sub {
   my ($app, $m) = (shift, shift);
-  my $pkg = !DEBUG ? '' : $app->can($m) ? $app : __PACKAGE__->can("_$m") ? __PACKAGE__ : 'SKIP';
+  my $pkg = !DEBUG ? '' : $app->can($m) ? $app : __PACKAGE__->can($m) ? __PACKAGE__ : 'SKIP';
   warn sprintf "[getopt::app] %s::%s()\n", $pkg, $m if DEBUG;
-  $m = $app->can($m) || __PACKAGE__->can("_$m");
+  $m = $app->can($m) || __PACKAGE__->can($m);
   return $m ? $app->$m(@_) : undef;
 };
 
@@ -124,6 +124,38 @@ sub extract_usage {
   return join '', $usage, _usage_for_subcommands($SUBCOMMANDS || []), _usage_for_options($OPTIONS || []);
 }
 
+sub getopt_complete_reply { Getopt::App::Complete::complete_reply(@_) }
+
+sub getopt_configure {qw(bundling no_auto_abbrev no_ignore_case pass_through require_order)}
+
+sub getopt_load_subcommand {
+  my ($app, $subcommand, $argv) = @_;
+  return $subcommand->[1] if ref $subcommand->[1] eq 'CODE';
+
+  my $method      = $subcommand->[1] =~ /^\w+$/ && $app->can($subcommand->[1]);
+  my @option_spec = @$OPTIONS;
+  return sub { _run($app, [@option_spec], $_[0], $method) }
+    if $method;
+
+  ($@, $!) = ('', 0);
+  croak "Unable to load subcommand $subcommand->[0]: $@ ($!)" unless my $code = do $subcommand->[1];
+  return $code;
+}
+
+sub getopt_post_process_argv {
+  my ($app, $argv, $state) = @_;
+  return unless $state->{valid};
+  return unless $argv->[0] and $argv->[0] =~ m!^-!;
+  $! = 1;
+  die "Invalid argument or argument order: @$argv\n";
+}
+
+sub getopt_unknown_subcommand {
+  my ($app, $argv) = @_;
+  $! = 2;
+  die "Unknown subcommand: $argv->[0]\n";
+}
+
 sub import {
   my ($class, @flags) = @_;
   my $caller = caller;
@@ -170,38 +202,6 @@ sub run {
   my $class = caller;
   exit _run($class->new, [@option_spec], [@ARGV], $cb) unless defined wantarray;
   return sub { _run($class->new, [@option_spec], $_[0], $cb) };
-}
-
-sub _getopt_complete_reply { Getopt::App::Complete::complete_reply(@_) }
-
-sub _getopt_configure {qw(bundling no_auto_abbrev no_ignore_case pass_through require_order)}
-
-sub _getopt_load_subcommand {
-  my ($app, $subcommand, $argv) = @_;
-  return $subcommand->[1] if ref $subcommand->[1] eq 'CODE';
-
-  my $method      = $subcommand->[1] =~ /^\w+$/ && $app->can($subcommand->[1]);
-  my @option_spec = @$OPTIONS;
-  return sub { _run($app, [@option_spec], $_[0], $method) }
-    if $method;
-
-  ($@, $!) = ('', 0);
-  croak "Unable to load subcommand $subcommand->[0]: $@ ($!)" unless my $code = do $subcommand->[1];
-  return $code;
-}
-
-sub _getopt_post_process_argv {
-  my ($app, $argv, $state) = @_;
-  return unless $state->{valid};
-  return unless $argv->[0] and $argv->[0] =~ m!^-!;
-  $! = 1;
-  die "Invalid argument or argument order: @$argv\n";
-}
-
-sub _getopt_unknown_subcommand {
-  my ($app, $argv) = @_;
-  $! = 2;
-  die "Unknown subcommand: $argv->[0]\n";
 }
 
 sub _exit {
@@ -403,6 +403,22 @@ also L</getopt_subcommands>.
 
 These methods are optional, but can be defined in your script to override the
 default behavior.
+
+Order of how the methods are called:
+
+  run(@option_spec, $cb)
+    -> getopt_pre_process_argv(\@argv)
+    -> getopt_configure()
+    -> getopt_post_process_argv(\@argv, \%state)
+    -> $cb
+
+  run(@option_spec, $cb)
+    -> getopt_pre_process_argv(\@argv)
+    -> getopt_subcommands()
+      -> getopt_load_subcommand($subcommand, \@argv)
+        -> getopt_configure()
+        -> getopt_post_process_argv(\@argv, \%state)
+        -> $cb
 
 =head2 getopt_complete_reply
 
