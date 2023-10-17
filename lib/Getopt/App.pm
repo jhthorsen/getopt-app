@@ -8,6 +8,8 @@ use Carp         qw(croak);
 use Getopt::Long ();
 use List::Util   qw(first);
 
+use constant DEBUG => $ENV{GETOPT_APP_DEBUG} || 0;
+
 our $VERSION = '0.13';
 
 our ($DEPTH, $OPT_COMMENT_RE, $OPTIONS, $SUBCOMMAND, $SUBCOMMANDS, %APPS) = (-1, qr{\s+\#\s+});
@@ -15,6 +17,8 @@ our ($DEPTH, $OPT_COMMENT_RE, $OPTIONS, $SUBCOMMAND, $SUBCOMMANDS, %APPS) = (-1,
 our $call_maybe = sub {
   my ($app, $m) = (shift, shift);
   local $Getopt::App::APP_CLASS;
+  my $pkg = !DEBUG ? '' : $app->can($m) ? $app : __PACKAGE__->can("_$m") ? __PACKAGE__ : 'SKIP';
+  warn sprintf "[getopt::app] %s::%s()\n", $pkg, $m if DEBUG;
   $m = $app->can($m) || __PACKAGE__->can("_$m");
   return $m ? $app->$m(@_) : undef;
 };
@@ -25,11 +29,14 @@ sub bundle {
 
   open my $SCRIPT, '<', $script or croak "Can't read $script: $!";
   while (my $line = readline $SCRIPT) {
-    if ($line =~ m!^\s*package\s+\S+\s*;!) {    # look for app class name
+    if ($line =~ /\bDEBUG\b/) {
+      next;
+    }
+    elsif ($line =~ m!^\s*package\s+\S+\s*;!) {    # look for app class name
       $package .= $line;
       last;
     }
-    elsif ($. == 1) {                           # look for hashbang
+    elsif ($. == 1) {                              # look for hashbang
       $line =~ m/^#!/ ? print {$OUT} $line : do { print {$OUT} "#!$^X\n"; push @script, $line };
     }
     else {
