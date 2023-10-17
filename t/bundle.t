@@ -23,7 +23,6 @@ my @expect_bundled = (
   qr/sub _getopt_unknown_subcommand \{.*\}/,
   qr/sub _exit \{.*\}/,
   qr/sub _run \{.*\}/,
-  qr/sub _subcommand_run \{.*\}/,
   qr/sub _subcommand_run_maybe \{.*\}/,
   qr/sub _usage_for_options \{.*\}/,
   qr/sub _usage_for_subcommands \{.*\}/,
