@@ -10,7 +10,7 @@ use List::Util   qw(first);
 
 our $VERSION = '0.13';
 
-our ($OPT_COMMENT_RE, $OPTIONS, $SUBCOMMAND, $SUBCOMMANDS, %APPS) = (qr{\s+\#\s+});
+our ($DEPTH, $OPT_COMMENT_RE, $OPTIONS, $SUBCOMMAND, $SUBCOMMANDS, %APPS) = (-1, qr{\s+\#\s+});
 
 our $call_maybe = sub {
   my ($app, $m) = (shift, shift);
@@ -168,6 +168,7 @@ sub run {
   my $cb   = pop @rules;
   my $argv = ref $rules[0] eq 'ARRAY' ? shift @rules : [@ARGV];
   local $OPTIONS = [@rules];
+  local $DEPTH   = $DEPTH + 1;
 
   my $app = $class->new;
   return $app->$call_maybe('getopt_complete_reply') if defined $ENV{COMP_POINT} and defined $ENV{COMP_LINE};
@@ -389,6 +390,18 @@ run.
 L<Getopt::App> also supports infinite nested L<subcommands|/getopt_subcommands>
 and a method for L<bundling|/bundle> this module with your script to prevent
 depending on a module from CPAN.
+
+=head1 VARIABLES
+
+=head2 DEPTH
+
+C<$Getopt::App::DEPTH> will be increased for each sub command and will be C<0>
+for the first L</run>.
+
+=head2 SUBCOMMAND
+
+C<$Getopt::App::SUBCOMMAND> will be set to the active sub command element. See
+also L</getopt_subcommands>.
 
 =head1 APPLICATION METHODS
 

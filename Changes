@@ -1,5 +1,8 @@
 Revision history for perl distribution Getopt-App
 
+1.00 Not Released
+ - Add support for $Getopt::App::DEPTH
+
 0.13 2023-05-03T13:38:06
  - Made it much easier to call methods as sub commands
 
