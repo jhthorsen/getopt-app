@@ -1,6 +1,6 @@
 Revision history for perl distribution Getopt-App
 
-1.00 Not Released
+1.00 2023-10-18T15:27:14
  - Add support for $Getopt::App::DEPTH
  - Add support for GETOPT_APP_DEBUG=1
  - Fix always calling getopt_load_subcommand(), even for methods

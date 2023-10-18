@@ -100,10 +100,38 @@ run.
 and a method for [bundling](#bundle) this module with your script to prevent
 depending on a module from CPAN.
 
+# VARIABLES
+
+## DEPTH
+
+`$Getopt::App::DEPTH` will be increased for each sub command and will be `0`
+for the first ["run"](#run).
+
+## SUBCOMMAND
+
+`$Getopt::App::SUBCOMMAND` will be set to the active sub command element. See
+also ["getopt\_subcommands"](#getopt_subcommands).
+
 # APPLICATION METHODS
 
 These methods are optional, but can be defined in your script to override the
 default behavior.
+
+Order of how the methods are called:
+
+    run(@option_spec, $cb)
+      -> getopt_pre_process_argv(\@argv)
+      -> getopt_configure()
+      -> getopt_post_process_argv(\@argv, \%state)
+      -> $cb
+
+    run(@option_spec, $cb)
+      -> getopt_pre_process_argv(\@argv)
+      -> getopt_subcommands()
+        -> getopt_load_subcommand($subcommand, \@argv)
+          -> getopt_configure()
+          -> getopt_post_process_argv(\@argv, \%state)
+          -> $cb
 
 ## getopt\_complete\_reply
 
@@ -192,20 +220,10 @@ array-refs like this:
     [["subname", "/abs/path/to/sub-command-script", "help text"], ...]
 
 The first element in each array-ref "subname" will be matched against the first
-argument passed to the script, and when matched the "sub-command-script" will
-be sourced and run inside the same perl process. The sub command script must
-also use [Getopt::App](https://metacpan.org/pod/Getopt%3A%3AApp) for this to work properly.
-
-The sub-command will have `$Getopt::App::SUBCOMMAND` set to the item found in
-the list.
-
-Instead of specifying a path, it is also possible to specify a method name, in
-case you want to include the sub commands inside the current script. Example:
-
-    [["foo", "command_foo", "help text"], ...]
-
-See [https://github.com/jhthorsen/getopt-app/tree/main/example](https://github.com/jhthorsen/getopt-app/tree/main/example) for a working
-example.
+command line option, and when matched, the given subcommand item will be passed
+on to ["getopt\_load\_subcommand"](#getopt_load_subcommand) which must return a code-ref, preferably from
+["run"](#run). The sub command will have `$Getopt::App::SUBCOMMAND` set to the item
+found in the list.
 
 ## getopt\_unknown\_subcommand
 
@@ -264,8 +282,8 @@ exists in the script.
 
 ## new
 
-    my $obj = new($class, %args);
-    my $obj = new($class, \%args);
+    my $app = new($class, %args);
+    my $app = new($class, \%args);
 
 This function is exported into the caller package so we can construct a new
 object:
@@ -278,21 +296,21 @@ exists in the script.
 ## run
 
     # Run a code block on valid @ARGV
-    run(@rules, sub ($app, @extra) { ... });
+    run(@option_spec, sub ($app, @extra) { ... });
 
     # For testing
-    my $cb = run(@rules, sub ($app, @extra) { ... });
+    my $cb = run(@option_spec, sub ($app, @extra) { ... });
     my $exit_value = $cb->([@ARGV]);
 
-["run"](#run) can be used to call a callback when valid command line options is
-provided. On invalid arguments, warnings will be issued and the program exit
-with `$?` set to 1.
+["run"](#run) can be used to call a callback when valid command line options are
+provided. On invalid arguments, warnings will be issued and the program will
+exit with `$?` set to 1.
 
 `$app` inside the callback is a hash blessed to the caller package. The keys
 in the hash are the parsed command line options, while `@extra` is the extra
 unparsed command line options.
 
-`@rules` are the same options as [Getopt::Long](https://metacpan.org/pod/Getopt%3A%3ALong) can take. Example:
+`@option_spec` are the same options as [Getopt::Long](https://metacpan.org/pod/Getopt%3A%3ALong) can take. Example:
 
     # app.pl -vv --name superwoman -o OptX cool beans
     run(qw(h|help v+ name=s o=s@), sub ($app, @extra) {
